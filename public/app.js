@@ -52,10 +52,16 @@ function getIndexOfCard(cards, searched) {
 
 socket.on('placed_card', (data) => {
     document.getElementById("current_trick").innerHTML += '<img class="trickCard" src="/cards/'+data.card[0].toString()+'-'+data.card[1].toString()+'.svg" style="--i:'+(4-ownUserId+data.userId)+'">'
+    if(Object.keys(data.currentTrick).length-1 < 4) nextPlayer = "player"+(Number(document.getElementsByClassName('their-turn')[0].id.slice(6))+1)%4
+    document.getElementsByClassName('their-turn')[0].classList.remove('their-turn')
+    if (Object.keys(data.currentTrick).length-1 < 4) document.getElementById(nextPlayer).className = 'their-turn'
+
     if (data.userId == ownUserId) {
         ownCards.splice(getIndexOfCard(ownCards,data.card),1)
-        renderCardsfor(ownUserId)
+    } else {
+        users[data.userId].cards -= 1
     }
+    renderCardsfor(data.userId)
 })
 
 socket.on('new_trick', (trick) => {
@@ -68,7 +74,7 @@ socket.on('new_trick', (trick) => {
             document.getElementById("current_trick").innerHTML = ''
             document.getElementById("current_trick").style.left = '45%'
             document.getElementById("current_trick").style.bottom = '72%'
-
+            for (let i = 0; i<4; i++) appendCardToTrick(getPlayerElement(trick.start))
             for (let i = 0; i<users.length;i++) {
                 getPlayerElement(i).className = ''
             }
@@ -170,8 +176,8 @@ function isValid() {
 }
 
 
-function appendCardToTrick(id) {
-    const cardStack = document.getElementById(id).getElementsByClassName("tricks")[0];
+function appendCardToTrick(elem) {
+    const cardStack = elem.getElementsByClassName("tricks")[0];
     const cardsLength = cardStack.children.length
     cardStack.innerHTML += '<img class="card" src="/cards/back.svg" style="transform: translate(-'+cardsLength/1.5+'px, -'+cardsLength/1.5+'px)">';
 }
