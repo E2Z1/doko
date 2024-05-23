@@ -1,0 +1,320 @@
+* {
+  box-sizing:border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: linear-gradient(45deg, #4f4e4e 0%, #000000 100%);
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.navbar {
+  background-color: #e5e5e5;
+  height: 50.5px;
+  overflow: hidden;
+}
+ 
+nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#credits, #credits a {
+  color: #e5e5e5;
+  font-size: 25px;
+}
+
+#credits {
+  margin: 10px;
+}
+
+nav {
+  float: left;
+  margin: 0;
+}
+
+li {
+  display: inline;
+  padding: 15px;
+}
+
+nav a {
+  text-decoration: none;
+  color: #353535;
+  display: inline-block;
+  padding-top: 15px;
+}
+
+nav a:hover {
+  color: #000000;
+}
+
+nav a:active {
+  font-weight: bold;
+}
+
+.error-container {
+  position: fixed;
+  top: -100px;
+  right: 10px;
+  background-color: red;
+  border: 2px solid rgb(144, 0, 0);
+  border-radius: 2px;
+  color: white;
+  padding: 10px;
+  transition: top 0.5s ease;
+}
+
+.error-container.show {
+  top: 30px;
+}
+
+.result-container {
+  display: none;
+  background: linear-gradient(180deg, #f1f1f1 0%, #ffffff 100%);
+  border-radius: 10px;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 2px 0 #000000;
+}
+
+.result-container table {
+  border-spacing: 20px;
+  margin: 40px;
+}
+
+.result-container td {
+  text-align: center;
+}
+
+.result-container.show {
+  display: block;
+}
+
+
+.select-game {
+  padding: 1em;
+  display: flex;
+  gap: 0.5em;
+  align-items: flex-end
+}
+
+.nav-bar {
+  background-color: #929292;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.login {
+  background: linear-gradient(180deg, #f1f1f1 0%, #ffffff 100%);
+  width: 405px;
+  padding: 50px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 2px 0 #000000;
+}
+
+#inputfield {
+  display: flex;
+  flex-wrap: wrap;
+  width: min-content;
+}
+
+input,
+button {
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 18px;
+  height: 44px;
+  border-radius: 4px;
+  outline: 0;
+  margin: 4px;
+}
+
+input {
+  outline: 0;
+  padding-left: 0.5em;
+  border: 3px solid #222034;
+  width: 200px;
+}
+input:focus {
+  border-color: #21d102 !important;
+}
+
+button {
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+  background: #ffffff;
+  border: 0;
+  border-bottom: 2px solid #929292;
+  cursor: pointer;
+}
+#login-button {
+  background: #4f4e4e;
+  color: #ffffff;
+  border-color: #222034;
+  margin-left: 10px;
+  width: 80px;
+}
+#switchLogSign {
+  width: 100%;
+  display: block;
+  font-weight: bold;
+  color: #000000;
+}
+button:active {
+  position: relative;
+  transform: translateY(1px);
+  border-bottom: 1px solid #929292;
+}
+
+#player2 {
+  position: fixed;
+  top: 12vh;
+  left: 50%;
+  transform: rotate(180deg);
+}
+
+#player1 {
+  position: fixed;
+  top: 50%;
+  left: 12vh;
+  transform: rotate(90deg);
+}
+
+#player3 {
+  position: fixed;
+  top: 50%;
+  right: 12vh;
+  transform: rotate(270deg);
+}
+
+#player0 {
+  position: fixed;
+  bottom: 25%;
+  left: 50%;
+}
+
+.card {
+  position: absolute;
+  height: 20vh;
+  transform: rotate(calc(var(--i)*6deg)) translate(calc(var(--i)*2.5vh), -5vh);
+  user-select: none;
+}
+
+#current_trick {
+  position: fixed;
+  bottom: 72%;
+  left: 45%;
+}
+
+.trickCard {
+  position: absolute;
+  height: 30vh;
+  transform: rotate(calc(var(--i)*90deg + 180deg)) translate(-10%, -10%);
+  user-select: none;
+}
+
+#player0 .card {
+  cursor: pointer;
+  height: 40vh;
+  transition: transform 0.5s;
+}
+
+#player0 .card:hover {
+  transform: rotate(calc(var(--i)*6deg)) translate(calc(var(--i)*2.5vh), -17vh);
+
+}
+
+#player-name {
+  position: fixed;
+  color: white;
+  font-size: 2vh;
+  top: 6vh;
+  padding: 1vh;
+  border-radius: 4px;
+  background: linear-gradient(45deg, #4f4e4e 0%, #000000 100%);
+  margin: auto;
+  user-select: none;
+}
+
+.their-turn #player-name {
+  font-size: 30px;
+  top: -4vh;
+  background: linear-gradient(45deg, #b1a4a4 0%, #ffffff 100%);
+}
+
+.their-turn#player0 .card {
+  height: 70vh;
+}
+
+.tricks .card {
+  height: 20vh !important;
+  right: 25vh;
+  cursor: auto !important;
+}
+
+.closeX {
+  cursor: pointer;
+  position: absolute;
+  top: 5px;
+  right: 12px;
+  font-size: 26px;
+}
+
+#call {
+  background: linear-gradient(180deg, #f1f1f1 0%, #ffffff 100%);
+  border-radius: 10px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 2px 0 #000000;
+  text-align: center;
+  overflow: hidden;
+}
+#call a {
+  cursor: pointer;
+  font-size: 30px;
+  display: block;
+  background: linear-gradient(45deg, #4f4e4e 0%, #000000 100%);
+  border-radius: 5px;
+  color: #f1f1f1;
+  text-decoration: none;
+  padding: 5px;
+  margin: 7px;
+  user-select: none;
+}
+
+#announcement {
+  right: 17vh;
+  position: absolute;
+  cursor: pointer;
+  font-size: 30px;
+  background: linear-gradient(45deg, #4f4e4e 0%, #000000 100%);
+  border-radius: 10px;
+  color: #f1f1f1;
+  text-decoration: none;
+  padding: 8px;
+  user-select: none;
+  border: 4px solid #f1f1f1;
+}
