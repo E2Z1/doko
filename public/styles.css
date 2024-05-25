@@ -6,7 +6,9 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
+  width: 100%;
   background: linear-gradient(45deg, #4f4e4e 0%, #000000 100%);
+  position: fixed;
   font-family: 'Source Sans Pro', sans-serif;
 }
 
@@ -317,4 +319,32 @@ button:active {
   padding: 8px;
   user-select: none;
   border: 4px solid #f1f1f1;
+}
+
+@keyframes calling {
+  from {
+    transform: translate(-10%,50%);
+  }
+  to {
+    transform: translate(-50%,-50%);
+  }
+}
+
+.called {
+
+  position: fixed;
+  color: white;
+  font-size: 10vh;
+  top: -10vh;
+  padding: 1vh;
+  border-radius: 20px;
+  background: linear-gradient(45deg, #4f4e4e 0%, #000000 100%);
+  margin: auto;
+  user-select: none;
+  border: 8px solid #f1f1f1;
+  animation: calling 1s forwards;
+}
+
+.admin {
+  background: linear-gradient(45deg, #ff00dd 0%, #00ffea 100%) !important;
 }

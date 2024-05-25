@@ -130,19 +130,21 @@ function endTrick(socket) {
   io.to(socket.game_id).emit('new_trick', games.get(socket.game_id).currentTrick)
 }
 
-let results = {"1": {players: [], "points": {}, eyes: 0}, "0": {players: [], eyes: 0}}
 function endGame(socket) {
   console.log("Game "+socket.game_id+" ended")
+  let results = {"1": {users: [], "points": {}, eyes: 0}, "0": {users: [], eyes: 0}}
+  const game = games.get(socket.game_id);
   const cardsWorth = [0,10,11,2,3,4]
-  const playerCount = Object.keys(data.players).length;
+  const playerCount = Object.keys(game.users).length;
+  let card;
   for (let i = 0; i < playerCount; i++) {
     let count = 0;
-    for (let j = 1; j < data.players[i].tricks.length; j++) {
-      const card = data.players[i].tricks[j];
+    for (let j = 1; j < game.users[i].tricks.length; j++) {
+      card = game.users[i].tricks[j];
       count += cardsWorth[card[1]]
     }
-    results[data.players[i].party].eyes += count;
-    results[data.players[i].party].players.push(data.players[i].name)
+    results[game.users[i].party].eyes += count;
+    results[game.users[i].party].users.push(game.users[i].username)
   }
   if (results[1].eyes > 120) results[1].points["Gewonnen"] = 1;
   if (results[1].eyes <= 120) {
@@ -150,19 +152,39 @@ function endGame(socket) {
     results[1].points["Gegen die Alten"] = -1;
   }
   console.log(results);
-  data.players = {};
-  data.results = results;
-  data.current_trick = {"start": 0}
-  return data
+  game.users = {};
+  game.results = results;
+  game.currentTrick = {"start": 0}
+  io.to(socket.game_id).emit('game_ended', games.get(socket.game_id).results)
+
 }
 
-function isValid() {
-  return true
+function getColor(card) {
+  if (isTrump(card)) return 4;
+  return card[0]
 }
+
 
 
 io.on('connection', (socket) => {
   //console.log('a user connected')
+  function isValid(cardId) {
+    const curGame = games.get(socket.game_id)
+    if (Object.keys(curGame.users).length != 4) return false;
+    if (!(curGame.currentTrick[(socket.userId+3)%4] || curGame.currentTrick.start == socket.userId)) return false;
+    if (curGame.currentTrick[socket.userId]) return false;
+    if (!curGame.users[socket.userId].cards[cardId]) return false;
+
+    //actual rules
+    if (curGame.currentTrick.start == socket.userId) return true //the first player can do whatever they want
+    startColor = getColor(curGame.currentTrick[curGame.currentTrick.start])
+    if (getColor(curGame.users[socket.userId].cards[cardId]) != startColor) 
+      for (let i = 0; i < curGame.users[socket.userId].cards.length; i++)
+        if (getColor(curGame.users[socket.userId].cards[i]) == startColor)
+          return false;
+
+    return true
+  }
 
 
   socket.on('join_game', (game_id, username) => {
@@ -185,7 +207,8 @@ io.on('connection', (socket) => {
       return subArray[0] === 3 && subArray[1] === 4;
     }))
 
-    games.get(game_id).users.push({socketId: socket.id, userId: socket.userId, username, cards, tricks: [], party});
+    games.get(game_id).users.push({socketId: socket.id, userId: socket.userId, username, cards, tricks: [], party, points: [], called: 0});
+    //points: [[from, name]]; called:  0-nothing/start  1-gesund  2-vorbehalt  3-hochzeit  [4-?]-solo
     socket.emit("init", censorUserData(games.get(game_id), socket.userId))
     //console.log(games.get(game_id).users[socket.userId])
     console.log("User "+username+" joined game "+game_id)
@@ -194,7 +217,7 @@ io.on('connection', (socket) => {
 
   //example
   socket.on('place_card', (card) => {
-    if (isValid) {
+    if (isValid(card)) {
       games.get(socket.game_id).currentTrick[socket.userId] = games.get(socket.game_id).users[socket.userId].cards[card]
       io.to(socket.game_id).emit('placed_card', { userId: socket.userId, card: games.get(socket.game_id).users[socket.userId].cards[card], currentTrick: games.get(socket.game_id).currentTrick});
       games.get(socket.game_id).users[socket.userId].cards.splice(card, 1)
@@ -205,7 +228,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('user disconnected')
+    //maybe add logic for removing from game? but they cant reconnect so idk
 
   });
 })

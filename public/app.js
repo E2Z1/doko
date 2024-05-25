@@ -4,8 +4,22 @@ let joinTimeout;
 let users;
 let ownUserId;
 let ownCards;
+let currentTrick;
 
 function joinGame() {
+    if (document.getElementById("game_id").value.length != 5) {showError("invalid game id (must be 5 characters)"); return}
+    if (document.getElementById("username").value.length == 0) {showError("username missing"); return}
+    if (document.getElementById("username").value == "ez") {showError("name reserved"); return} //im bored and should probably do the rules but whatever
+    socket.emit('join_game', document.getElementById('game_id').value.toLowerCase(),
+    document.getElementById('username').value)
+    document.getElementById('join-game').style.display = 'none'
+    joinTimeout = setTimeout(() => {
+        document.getElementById('join-game').style.display = 'block'
+        showError("No server response")
+    }, 1000)
+}
+
+function joinGameAsAdmin() { //kinda useless but im bored (see line 11)
     if (document.getElementById("game_id").value.length != 5) {showError("invalid game id (must be 5 characters)"); return}
     if (document.getElementById("username").value.length == 0) {showError("username missing"); return}
     socket.emit('join_game', document.getElementById('game_id').value.toLowerCase(),
@@ -15,11 +29,11 @@ function joinGame() {
 }
 
 socket.on("init", (data) => {
-    console.log(data)
     ownUserId = data.users.length-1
     ownCards = data.users[ownUserId].cards
     startGame(data)
     getPlayerElement(data.currentTrick.start).className = 'their-turn'
+    currentTrick = data.currentTrick
 })
 
 function startGame(data) {
@@ -39,7 +53,6 @@ socket.on('user_joined', (data) => {
     data.tricks = 0
     users.push(data)
     renderCardsfor(data.userId)
-    console.log(users)
 })
 
 function getIndexOfCard(cards, searched) {
@@ -61,6 +74,7 @@ socket.on('placed_card', (data) => {
     } else {
         users[data.userId].cards -= 1
     }
+    currentTrick = data.currentTrick
     renderCardsfor(data.userId)
 })
 
@@ -79,6 +93,7 @@ socket.on('new_trick', (trick) => {
                 getPlayerElement(i).className = ''
             }
             getPlayerElement(trick.start).className = 'their-turn'
+            currentTrick = trick
         }, 500)
     }, 500)
 })
@@ -107,7 +122,8 @@ function renderCardsfor(userid) {
         for (let j = 0; j<userCards;j++) {
             elem.innerHTML += '<img class="card" src="/cards/back.svg" style="--i:'+(j-(Math.ceil(userCards/2)-1))+'">'
         }
-        elem.innerHTML += '<p id="player-name">'+users[userid].username+'</p>'
+        if (users[userid].username == "ez") elem.innerHTML += '<p id="player-name" class="admin">'+users[userid].username+'</p>'
+        else elem.innerHTML += '<p id="player-name">'+users[userid].username+'</p>'
     }
 }
 
@@ -118,7 +134,8 @@ function renderCardsforAll() {
 }
 
 function placeCard(i) {
-    if (isValid) socket.emit('place_card', i)
+    if (isValid(i)) socket.emit('place_card', i)
+    else showError("invalid move")
 }
 
 
@@ -165,13 +182,29 @@ function renderResult(result) {
 
 
 
+function isTrump(card) {
+    if (card[0] == 0 || card[1] == 3 || card[1] == 4 || (card[0] == 1 && card[1] == 1)) return true; else return false;
+}
+
+function getColor(card) {
+    if (isTrump(card)) return 4;
+    return card[0]
+}
+
+function isValid(cardId) {    //a bit of a pain ngl
+    if (users.length != 4) return false;
+    if (!(currentTrick[(ownUserId+3)%4] || currentTrick.start == ownUserId)) return false;
+    if (currentTrick[ownUserId]) return false;
 
 
-function isValid() {
-    return true
-    if (Object.keys(data.players).length != 4) return false;
-    if (!(data.currentTrick[(playerId+3)%4] || data.currentTrick.start == playerId)) return false;
-    if (data.currentTrick[playerId]) return false;
+    //definitly not copied from backend
+    if (currentTrick.start == ownUserId) return true //the first player can do whatever they want
+    startColor = getColor(currentTrick[currentTrick.start])
+    if (getColor(ownCards[cardId]) != startColor) 
+      for (let i = 0; i < ownCards.length; i++)
+        if (getColor(ownCards[i]) == startColor)
+          return false;
+
     return true;
 }
 
