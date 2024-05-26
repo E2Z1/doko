@@ -92,6 +92,7 @@ function getHighestCard(cards) {
         if (colorSeq.indexOf(card[1]) > colorSeq.indexOf(highestCard[1])) { highestCard = card; highestCardIndex = i; }
       } else { // not diamond
         if (card[0] === 1 && card[1] === 1) { highestCard = card; highestCardIndex = i; continue; }
+        if (card[0] === 0) continue;
         if (card[1] > highestCard[1]) { highestCard = card; highestCardIndex = i; continue; }
         if (card[1] === highestCard[1] && card[0] > highestCard[0]) { highestCard = card; highestCardIndex = i; }
       }
