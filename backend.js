@@ -125,8 +125,7 @@ function addPoint(points, point_name) {
     points[points.findIndex(arr => arr[0] === point_name)][1] += 1
     return
   }
-  points.push(...[point_name, 1])
-  console.log(points)
+  points.push([point_name, 1])
 }
 
 function endTrick(socket) {
@@ -252,7 +251,6 @@ io.on('connection', (socket) => {
     games.get(game_id).users.push({socketId: socket.id, userId: socket.userId, username, cards, tricks: [], party, points: [], called: 0});
     //points: [[name, points]]; called:  0-nothing/start  1-gesund  2-vorbehalt  3-hochzeit  [4-?]-solo
     socket.emit("init", censorUserData(games.get(game_id), socket.userId))
-    //console.log(games.get(game_id).users[socket.userId])
     console.log("User "+username+" joined game "+game_id)
   })
 
