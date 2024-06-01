@@ -88,11 +88,12 @@ function getHighestCard(cards) {
     if (isTrump(highestCard)) { // trump
       if (!isTrump(card)) continue;
       if (highestCard[0] === 0 && !(highestCard[1] == 3 || highestCard[1] == 4)) { // diamond
-        if (card[0] !== 0 && !(card[1] == 3 || card[1] == 4)) { highestCard = card; highestCardIndex = i; continue; }
+        if (!(card[0] === 0 && !(card[1] == 3 || card[1] == 4))) { highestCard = card; highestCardIndex = i; continue; }
         if (colorSeq.indexOf(card[1]) > colorSeq.indexOf(highestCard[1])) { highestCard = card; highestCardIndex = i; }
       } else { // not diamond
         if (card[0] === 1 && card[1] === 1) { highestCard = card; highestCardIndex = i; continue; }
-        if (card[0] === 0) continue;
+        if (highestCard[0] === 1 && highestCard[1] === 1) continue;
+        if (card[0] === 0 && !(card[1] == 3 || card[1] == 4)) continue;
         if (card[1] > highestCard[1]) { highestCard = card; highestCardIndex = i; continue; }
         if (card[1] === highestCard[1] && card[0] > highestCard[0]) { highestCard = card; highestCardIndex = i; }
       }
@@ -114,8 +115,18 @@ function censorUserData(odata, UserId) {
     }
     delete user.socketId
     user.tricks = user.tricks.length
+    user.points = -1
   });
   return data;
+}
+
+function addPoint(points, point_name) {
+  if (points.findIndex(arr => arr[0] === point_name) != -1) {
+    points[points.findIndex(arr => arr[0] === point_name)][1] += 1
+    return
+  }
+  points.push(...[point_name, 1])
+  console.log(points)
 }
 
 function endTrick(socket) {
@@ -123,29 +134,61 @@ function endTrick(socket) {
   const trick_cards = [];
   const game = games.get(socket.game_id);
   for (let i = game.currentTrick.start; i < 4+game.currentTrick.start;i++) trick_cards.push(game.currentTrick[(i%4).toString()]);
-  const winner = (getHighestCard(trick_cards)+game.currentTrick.start)%4;
+  const highestCard = getHighestCard(trick_cards)
+  const winner = (highestCard+game.currentTrick.start)%4;
   game.users[winner].tricks.push(...trick_cards)
+  console.log(trick_cards, highestCard)
+
+  //special points
+  //fuchs
+  foxIndex = trick_cards.findIndex(arr => arr[0] === 0 && arr[1] === 2);
+  if (foxIndex != -1 && foxIndex != highestCard) {
+    io.to(socket.game_id).emit('special_point', {point_name: "Fuchs", winner})
+    if (game.users[(foxIndex+game.currentTrick.start)%4].party != game.users[winner].party) {
+      addPoint(game.users[winner].points, "Fuchs gefangen")
+    }
+  }
+  //klabautermann
+  queenOfSpadesIndex = trick_cards.findIndex(arr => arr[0] === 2 && arr[1] === 4);
+  if (queenOfSpadesIndex == highestCard) {
+    kingOfSpadesIndex = trick_cards.findIndex(arr => arr[0] === 2 && arr[1] === 5);
+    if (kingOfSpadesIndex != -1 && kingOfSpadesIndex < queenOfSpadesIndex) {
+      io.to(socket.game_id).emit('special_point', {point_name: "Klabautermann", winner})
+      addPoint(game.users[winner].points, "Klabautermann")
+    }
+  }
+  
+
+
+
+
   game.currentTrick = {}
   game.currentTrick.start = winner
-  if (Object.keys(game.users[0].cards).length == 0) endGame(socket);
   io.to(socket.game_id).emit('new_trick', games.get(socket.game_id).currentTrick)
+  if (Object.keys(game.users[0].cards).length == 0) endGame(socket);
 }
 
 function endGame(socket) {
   console.log("Game "+socket.game_id+" ended")
-  let results = {"1": {users: [], "points": {}, eyes: 0}, "0": {users: [], eyes: 0}}
+  let results = {"1": {users: [], points: {}, eyes: 0}, "0": {users: [], eyes: 0}}
   const game = games.get(socket.game_id);
   const cardsWorth = [0,10,11,2,3,4]
   const playerCount = Object.keys(game.users).length;
   let card;
   for (let i = 0; i < playerCount; i++) {
     let count = 0;
-    for (let j = 1; j < game.users[i].tricks.length; j++) {
+    for (let j = 0; j < game.users[i].tricks.length; j++) {
       card = game.users[i].tricks[j];
       count += cardsWorth[card[1]]
     }
     results[game.users[i].party].eyes += count;
     results[game.users[i].party].users.push(game.users[i].username)
+    for (let j = 0; j < game.users[i].points.length; j++) {
+      if (results[1].points[game.users[i].points[j][0]])
+        results[1].points[game.users[i].points[j][0]] += (game.users[i].party ? 1 : -1) * game.users[i].points[j][1]
+      else 
+        results[1].points[game.users[i].points[j][0]] = (game.users[i].party ? 1 : -1) * game.users[i].points[j][1]
+    }
   }
   if (results[1].eyes > 120) results[1].points["Gewonnen"] = 1;
   if (results[1].eyes <= 120) {
@@ -153,10 +196,8 @@ function endGame(socket) {
     results[1].points["Gegen die Alten"] = -1;
   }
   console.log(results);
-  game.users = {};
-  game.results = results;
-  game.currentTrick = {"start": 0}
-  io.to(socket.game_id).emit('game_ended', games.get(socket.game_id).results)
+  io.to(socket.game_id).emit('game_ended', results)
+  games.delete(socket.game_id)
 
 }
 
@@ -209,7 +250,7 @@ io.on('connection', (socket) => {
     }))
 
     games.get(game_id).users.push({socketId: socket.id, userId: socket.userId, username, cards, tricks: [], party, points: [], called: 0});
-    //points: [[from, name]]; called:  0-nothing/start  1-gesund  2-vorbehalt  3-hochzeit  [4-?]-solo
+    //points: [[name, points]]; called:  0-nothing/start  1-gesund  2-vorbehalt  3-hochzeit  [4-?]-solo
     socket.emit("init", censorUserData(games.get(game_id), socket.userId))
     //console.log(games.get(game_id).users[socket.userId])
     console.log("User "+username+" joined game "+game_id)

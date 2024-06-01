@@ -5,11 +5,14 @@ let users;
 let ownUserId;
 let ownCards;
 let currentTrick;
+const admins = ["ez", "E2Z1"]
+let inAnimation = 0 //not a nice solution but im really not motivated rn, might change it later
+let removeAnimationTimer;
 
 function joinGame() {
     if (document.getElementById("game_id").value.length != 5) {showError("invalid game id (must be 5 characters)"); return}
     if (document.getElementById("username").value.length == 0) {showError("username missing"); return}
-    if (document.getElementById("username").value == "ez") {showError("name reserved"); return} //im bored and should probably do the rules but whatever
+    if (admins.includes(document.getElementById("username").value) && !localStorage.getItem("admin")) {showError("name reserved"); return} //im bored and should probably do the rules but whatever
     socket.emit('join_game', document.getElementById('game_id').value.toLowerCase(),
     document.getElementById('username').value)
     document.getElementById('join-game').style.display = 'none'
@@ -35,6 +38,14 @@ socket.on("init", (data) => {
     getPlayerElement(data.currentTrick.start).className = 'their-turn'
     currentTrick = data.currentTrick
 })
+lastTrick = document.getElementsByClassName("lastTrick")[0]
+document.addEventListener("mousemove", function(e) {
+    lastTrick.style.left = ((e.clientX)+50)+"px"
+    lastTrick.style.top = ((e.clientY)+20)+"px"
+})
+
+document.getElementById("game_id").addEventListener('keypress', function(event) {
+    if (event.key === 'Enter') joinGame()})
 
 function startGame(data) {
     clearTimeout(joinTimeout)
@@ -63,11 +74,22 @@ function getIndexOfCard(cards, searched) {
     }
 }
 
-socket.on('placed_card', (data) => {
+socket.on('placed_card', (data) => cardPlaced(data))
+
+function cardPlaced(data) {
+    if (inAnimation) {
+        setTimeout(() => cardPlaced(data), 100)
+        return
+    }
     document.getElementById("current_trick").innerHTML += '<img class="trickCard" src="/cards/'+data.card[0].toString()+'-'+data.card[1].toString()+'.svg" style="--i:'+(4-ownUserId+data.userId)+'">'
-    if(Object.keys(data.currentTrick).length-1 < 4) nextPlayer = "player"+(Number(document.getElementsByClassName('their-turn')[0].id.slice(6))+1)%4
-    document.getElementsByClassName('their-turn')[0].classList.remove('their-turn')
-    if (Object.keys(data.currentTrick).length-1 < 4) document.getElementById(nextPlayer).className = 'their-turn'
+    if(Object.keys(data.currentTrick).length-1 < 4) 
+        for (let i = data.currentTrick.start; i<data.currentTrick.start+users.length;i++)
+            if (!data.currentTrick[i%4]) {
+                nextPlayer = getPlayerElement(i)
+                break
+            }//buggy for some reasonnextPlayer = "player"+(Number(document.getElementsByClassName('their-turn')[0].id.slice(6))+1)%4
+    if (document.getElementsByClassName('their-turn')[0]) document.getElementsByClassName('their-turn')[0].classList.remove('their-turn')
+    if (Object.keys(data.currentTrick).length-1 < 4) nextPlayer.className = 'their-turn'
 
     if (data.userId == ownUserId) {
         ownCards.splice(getIndexOfCard(ownCards,data.card),1)
@@ -76,14 +98,19 @@ socket.on('placed_card', (data) => {
     }
     currentTrick = data.currentTrick
     renderCardsfor(data.userId)
-})
+    inAnimation = 1
+    removeAnimationTimer = setTimeout(() => inAnimation = 0, 500)
+}
 
 socket.on('new_trick', (trick) => {
+    clearTimeout(removeAnimationTimer)
+    inAnimation = 1
     setTimeout(() => {
         document.getElementById("current_trick").style.transition = 'bottom 0.5s, left 0.5s' 
         document.getElementById("current_trick").style.left = window.getComputedStyle(getPlayerElement(trick.start)).left
         document.getElementById("current_trick").style.bottom = window.getComputedStyle(getPlayerElement(trick.start)).bottom
         setTimeout(() => {
+            lastTrick.innerHTML = document.getElementById("current_trick").innerHTML
             document.getElementById("current_trick").style.transition = ''
             document.getElementById("current_trick").innerHTML = ''
             document.getElementById("current_trick").style.left = '45%'
@@ -94,9 +121,25 @@ socket.on('new_trick', (trick) => {
             }
             getPlayerElement(trick.start).className = 'their-turn'
             currentTrick = trick
+            inAnimation = 0
         }, 500)
     }, 500)
 })
+
+socket.on('game_ended', (results) => setTimeout(() => renderResult(results), 700))
+
+socket.on('special_point', (data) => showCalled(data.winner, data.point_name))
+
+function showCalled(id, msg) {
+    elem = getPlayerElement(id).querySelector('.called')
+    elem.innerHTML = msg
+    elem.style.display = "block"
+    inAnimation = 1
+    setTimeout(() => {
+        elem.style.display = "none"
+        inAnimation = 0
+    }, 1500)
+}
 
 function getCardsElement(playerId) {
     return document.getElementById("player"+(4-ownUserId+playerId)%4).querySelector('.cards')
@@ -122,8 +165,7 @@ function renderCardsfor(userid) {
         for (let j = 0; j<userCards;j++) {
             elem.innerHTML += '<img class="card" src="/cards/back.svg" style="--i:'+(j-(Math.ceil(userCards/2)-1))+'">'
         }
-        if (users[userid].username == "ez") elem.innerHTML += '<p id="player-name" class="admin">'+users[userid].username+'</p>'
-        else elem.innerHTML += '<p id="player-name">'+users[userid].username+'</p>'
+        elem.innerHTML += `<p id="player-name" ${admins.includes(users[userid].username) ? 'class="admin"' : ''}>${users[userid].username}</p>`;
     }
 }
 
@@ -152,8 +194,8 @@ function showError(error) {
 
 
 function renderResult(result) {
-    const rePlayers = result[1].players.join(' & ');
-    const contraPlayers = result[0].players.join(' & ');
+    const rePlayers = result[1].users.join(' & ');
+    const contraPlayers = result[0].users.join(' & ');
 
     let reScore = 0;
     const scoreRows = Object.entries(result[1].points).map(([key, value]) => {
@@ -172,7 +214,7 @@ function renderResult(result) {
           <tr></tr>
           ${totalReScore}
         </table>
-        <a class="closeX" onclick="leaveGame()">X</a>`;
+        <a class="closeX" href=".">X</a>`;
 
     var result_div = document.getElementsByClassName("result-container")[0]
     result_div.innerHTML = scoreTable
@@ -192,8 +234,9 @@ function getColor(card) {
 }
 
 function isValid(cardId) {    //a bit of a pain ngl
+    if (inAnimation) return false;
     if (users.length != 4) return false;
-    if (!(currentTrick[(ownUserId+3)%4] || currentTrick.start == ownUserId)) return false;
+    if (!document.getElementById("player0").classList.contains("their-turn")) return false;
     if (currentTrick[ownUserId]) return false;
 
 
@@ -208,9 +251,13 @@ function isValid(cardId) {    //a bit of a pain ngl
     return true;
 }
 
+function showLastTrick() {
+    if (lastTrick.style.display == "block") lastTrick.style.display = "none"
+    else lastTrick.style.display = "block"
+}
 
 function appendCardToTrick(elem) {
     const cardStack = elem.getElementsByClassName("tricks")[0];
     const cardsLength = cardStack.children.length
-    cardStack.innerHTML += '<img class="card" src="/cards/back.svg" style="transform: translate(-'+cardsLength/1.5+'px, -'+cardsLength/1.5+'px)">';
+    cardStack.innerHTML += '<img onclick="showLastTrick()" class="card" src="/cards/back.svg" style="transform: translate(-'+cardsLength/1.5+'px, -'+cardsLength/1.5+'px)">';
 }

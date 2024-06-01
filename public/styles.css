@@ -8,7 +8,7 @@ html, body {
   height: 100%;
   width: 100%;
   background: linear-gradient(45deg, #4f4e4e 0%, #000000 100%);
-  position: fixed;
+  background-attachment: fixed;
   font-family: 'Source Sans Pro', sans-serif;
 }
 
@@ -248,6 +248,7 @@ button:active {
 }
 
 #player-name {
+  transition: 0.3s;
   position: fixed;
   color: white;
   font-size: 2vh;
@@ -281,6 +282,8 @@ button:active {
   top: 5px;
   right: 12px;
   font-size: 26px;
+  text-decoration: none;
+  color: black;
 }
 
 #call {
@@ -331,8 +334,8 @@ button:active {
 }
 
 .called {
-
-  position: fixed;
+  display: none;
+  position: absolute;
   color: white;
   font-size: 10vh;
   top: -10vh;
@@ -347,4 +350,28 @@ button:active {
 
 .admin {
   background: linear-gradient(45deg, #ff00dd 0%, #00ffea 100%) !important;
+}
+
+.lastTrick {
+  display: none;
+  position: fixed;
+  scale: 0.75;
+}
+
+.rules h1 {
+  color: #e5e5e5;
+  margin-left: 10px;
+}
+
+.rules h2 {
+  color: #e5e5e5;
+  margin-left: 20px;
+}
+
+.rules p {
+  color: #e5e5e5;
+  margin-left: 40px;
+  margin-right: 80px;
+  margin-bottom: 50px;
+  margin-top: 0px;
 }
