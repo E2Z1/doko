@@ -325,11 +325,14 @@ button:active {
 }
 
 @keyframes calling {
-  from {
+  0% {
     transform: translate(-10%,50%);
   }
-  to {
+  66% {
     transform: translate(-50%,-50%);
+  }
+  100% {
+    transform: translate(20%,150%);
   }
 }
 
@@ -345,7 +348,7 @@ button:active {
   margin: auto;
   user-select: none;
   border: 8px solid #f1f1f1;
-  animation: calling 1s forwards;
+  animation: calling 1.5s forwards;
 }
 
 .admin {

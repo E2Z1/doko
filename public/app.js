@@ -8,11 +8,14 @@ let currentTrick;
 const admins = ["ez", "E2Z1"]
 let inAnimation = 0 //not a nice solution but im really not motivated rn, might change it later
 let removeAnimationTimer;
+let isOdel = false;
 
 function joinGame() {
     if (document.getElementById("game_id").value.length != 5) {showError("invalid game id (must be 5 characters)"); return}
     if (document.getElementById("username").value.length == 0) {showError("username missing"); return}
     if (admins.includes(document.getElementById("username").value) && !localStorage.getItem("admin")) {showError("name reserved"); return} //im bored and should probably do the rules but whatever
+    localStorage.setItem("username", document.getElementById('username').value)
+    localStorage.setItem("game_id", document.getElementById('game_id').value)
     socket.emit('join_game', document.getElementById('game_id').value.toLowerCase(),
     document.getElementById('username').value)
     document.getElementById('join-game').style.display = 'none'
@@ -22,14 +25,10 @@ function joinGame() {
     }, 1000)
 }
 
-function joinGameAsAdmin() { //kinda useless but im bored (see line 11)
-    if (document.getElementById("game_id").value.length != 5) {showError("invalid game id (must be 5 characters)"); return}
-    if (document.getElementById("username").value.length == 0) {showError("username missing"); return}
-    socket.emit('join_game', document.getElementById('game_id').value.toLowerCase(),
-    document.getElementById('username').value)
-    document.getElementById('join-game').style.display = 'none'
-    joinTimeout = setTimeout(() => document.getElementById('join-game').style.display = 'block', 1000)
-}
+document.addEventListener("DOMContentLoaded", function(e) {
+    document.getElementById('username').value = localStorage.getItem('username')
+    document.getElementById('game_id').value = localStorage.getItem('game_id')
+})
 
 socket.on("init", (data) => {
     ownUserId = data.users.length-1
@@ -130,8 +129,13 @@ socket.on('game_ended', (results) => setTimeout(() => renderResult(results), 700
 
 socket.on('special_point', (data) => showCalled(data.winner, data.point_name))
 
+socket.on('special_card', (data) => {
+    showCalled(data.userId, data.card)
+    if (data.cardId == 2) isOdel = true;
+}) //basically the same but like this its more understandable and maybe i will ad something in the future; update: did something
+
 function showCalled(id, msg) {
-    elem = getPlayerElement(id).querySelector('.called')
+    let elem = getPlayerElement(id).querySelector('.called')
     elem.innerHTML = msg
     elem.style.display = "block"
     inAnimation = 1
@@ -160,7 +164,7 @@ function renderCardsfor(userid) {
         }
     } else {
         userCards = users[userid].cards;
-        elem = getCardsElement(userid)
+        let elem = getCardsElement(userid)
         elem.innerHTML = ''
         for (let j = 0; j<userCards;j++) {
             elem.innerHTML += '<img class="card" src="/cards/back.svg" style="--i:'+(j-(Math.ceil(userCards/2)-1))+'">'
@@ -225,7 +229,7 @@ function renderResult(result) {
 
 
 function isTrump(card) {
-    if (card[0] == 0 || card[1] == 3 || card[1] == 4 || (card[0] == 1 && card[1] == 1)) return true; else return false;
+    if (card[0] == 0 || card[1] == 3 || card[1] == 4 || (card[0] == 1 && card[1] == 1) || (isOdel && card[0] == 1 && card[1] == 5)) return true; else return false;
 }
 
 function getColor(card) {
