@@ -14,6 +14,7 @@
          <ul>
           <li><a href="/">Home</a></li>
           <li><a href="/play/">Play</a></li>
+          <li><a href="/settings/">Game Settings</a></li>
           <li><a href="/rules/">Rules</a></li>
         </ul>
       </nav>
@@ -48,16 +49,25 @@
       </div>
     </div>
     <div class="select-game">
-      <div>
-        <label for="username">Name</label>
-        <input id="username" type="text"/>
-        <label for="game_id">Game ID</label>
-        <input id="game_id" maxlength="5" type="text"/>
+      <div class="select-game-input">
+        <div>
+          <label for="username">Name</label>
+          <input id="username" type="text"/>
+          <label for="game_id">Game ID</label>
+          <input id="game_id" maxlength="5" type="text"/>
+        </div>
+        <div>
+          <button id="join-game" onclick="joinGame()">Join Game</button>
+        </div>
       </div>
-      <div>
-        <button id="join-game" onclick="joinGame()">Join Game</button>
+      <div class="public-games">
+        <a onclick="socket.emit('getPublicGames')">Refresh</a>
+        <div class="games">
+          <div>quite empty :(</div>
+        </div>
       </div>
     </div>
+
     <div id="errorContainer" class="error-container">Error: </div>
     
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>

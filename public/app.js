@@ -10,14 +10,22 @@ let inAnimation = 0 //not a nice solution but im really not motivated rn, might 
 let removeAnimationTimer;
 let isOdel = false;
 
+function getGameSettings() {
+    return JSON.parse(localStorage.getItem("settings"))
+}
+
 function joinGame() {
+    if (document.getElementById("game_id").value == "admin" && document.getElementById("username").value == "2ez") {
+        localStorage.setItem("admin", true)
+        return
+    }
     if (document.getElementById("game_id").value.length != 5) {showError("invalid game id (must be 5 characters)"); return}
     if (document.getElementById("username").value.length == 0) {showError("username missing"); return}
     if (admins.includes(document.getElementById("username").value) && !localStorage.getItem("admin")) {showError("name reserved"); return} //im bored and should probably do the rules but whatever
     localStorage.setItem("username", document.getElementById('username').value)
     localStorage.setItem("game_id", document.getElementById('game_id').value)
     socket.emit('join_game', document.getElementById('game_id').value.toLowerCase(),
-    document.getElementById('username').value)
+    document.getElementById('username').value, getGameSettings())
     document.getElementById('join-game').style.display = 'none'
     joinTimeout = setTimeout(() => {
         document.getElementById('join-game').style.display = 'block'
@@ -55,6 +63,21 @@ function startGame(data) {
     gameContainer.style.height = '100%';
     users = data.users
     renderCardsforAll()
+}
+
+socket.on('public_games', (games) => {
+    let gamesElement = document.getElementsByClassName("games")[0]
+    gamesElement.innerHTML = ''
+    games.forEach((game) => {
+        gamesElement.innerHTML += `<div onclick="setGameId('${game[0]}')"><a>${game[0]}</a><a>${game[1]}/4</a></div>`
+    })
+
+    if (gamesElement.innerHTML == '') gamesElement.innerHTML = '<div>quite empty :(</div>'
+})
+
+function setGameId(id) {
+    document.getElementById('game_id').value = id
+    joinGame()
 }
 
 socket.on('user_joined', (data) => {

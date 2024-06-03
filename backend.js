@@ -164,12 +164,14 @@ function endTrick(socket) {
     }
   }
   //klabautermann
-  queenOfSpadesIndex = trick_cards.findIndex(arr => arr[0] === 2 && arr[1] === 4);
-  if (queenOfSpadesIndex == highestCard) {
-    kingOfSpadesIndex = trick_cards.findIndex(arr => arr[0] === 2 && arr[1] === 5);
-    if (kingOfSpadesIndex != -1 && kingOfSpadesIndex < queenOfSpadesIndex) {
-      io.to(socket.game_id).emit('special_point', {point_name: "Klabautermann", winner})
-      addPoint(game.users[winner].points, "Klabautermann")
+  if (game.settings.klabautermann) {
+    queenOfSpadesIndex = trick_cards.findIndex(arr => arr[0] === 2 && arr[1] === 4);
+    if (queenOfSpadesIndex == highestCard) {
+      kingOfSpadesIndex = trick_cards.findIndex(arr => arr[0] === 2 && arr[1] === 5);
+      if (kingOfSpadesIndex != -1 && kingOfSpadesIndex < queenOfSpadesIndex) {
+        io.to(socket.game_id).emit('special_point', {point_name: "Klabautermann", winner})
+        addPoint(game.users[winner].points, "Klabautermann")
+      }
     }
   }
   
@@ -232,7 +234,7 @@ function getSpecialCards(socket) {
     else if (card[0] == 0 && card[1] == 0) superPigs++
     else if (card[0] == 1 && card[1] == 5) oedel++
   })
-  if (oedel == 2) {
+  if (oedel == 2 && game.settings.odel) {
     user.special_cards.push(2)
     user.cards.splice(user.cards.findIndex(arr => arr[0] == 1 && arr[1] == 5), 1)
     user.cards.splice(user.cards.findIndex(arr => arr[0] == 1 && arr[1] == 5), 1)
@@ -256,7 +258,7 @@ function getSpecialCards(socket) {
     user.cards.splice(user.cards.length, 0, [0,2])
     user.cards.splice(user.cards.length, 0, [0,2])
   }
-  if (superPigs == 2 && pigs == 2) {
+  if (superPigs == 2 && pigs == 2 && game.settings.superpigs) {
 //    user.special_cards.push(1) they arent super pigs yet bc pigs were not laid
     user.cards.splice(user.cards.findIndex(arr => arr[0] == 0 && arr[1] == 0), 1)
     user.cards.splice(user.cards.findIndex(arr => arr[0] == 0 && arr[1] == 0), 1)
@@ -268,6 +270,7 @@ function getSpecialCards(socket) {
 
 function checkForSuperPigs(socket) {
   game = games.get(socket.game_id)
+  if (!game.settings.superpigs) return
   game.users.forEach((user) => {
     superPigs = 0
     user.cards.forEach((card) => {
@@ -284,8 +287,19 @@ function checkForSuperPigs(socket) {
 }
 
 
+function getPublicGames() {
+  let publicGames = []
+  games.forEach((game, key) => {
+    if (game.settings.public) publicGames.push([key, game.users.length])
+  })
+  return publicGames
+}
+
 
 io.on('connection', (socket) => {
+
+  socket.emit('public_games', getPublicGames())
+
   //console.log('a user connected')
   function isValid(cardId) {
     const curGame = games.get(socket.game_id)
@@ -305,8 +319,9 @@ io.on('connection', (socket) => {
     return true
   }
 
+  socket.on('getPublicGames', () => socket.emit('public_games', getPublicGames()))
 
-  socket.on('join_game', (game_id, username) => {
+  socket.on('join_game', (game_id, username, settings) => {
     //if (socket.game_id) {socket.emit("error", "already in game"); return}
     if (game_id.length != 5 || username.length == 0) { socket.emit("error", "invalid name/id"); return }
     if ((games.has(game_id) ? games.get(game_id).users.length : 0) >= 4) { socket.emit("error", "game is full"); return }
@@ -317,8 +332,9 @@ io.on('connection', (socket) => {
     socket.game_id = game_id
     socket.broadcast.to(game_id).emit('user_joined', { username, userId: socket.userId })
 
+
     if (!games.has(game_id)) {
-        games.set(game_id, {users: [], currentTrick: {"start": 0}, results: {}, type: -1, special_cards: []});
+        games.set(game_id, {settings, users: [], currentTrick: {"start": 0}, results: {}, type: -1, special_cards: []});
         //type -1 not set (not started)  0 normal  1 solo or something
     }
 
@@ -327,7 +343,7 @@ io.on('connection', (socket) => {
       return subArray[0] === 3 && subArray[1] === 4;
     }))
 
-    if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
+    //if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
     
     games.get(game_id).users.push({socketId: socket.id, userId: socket.userId, username, cards, tricks: [], party, points: [], called: 0, special_cards: []});
     //points: [[name, points]]; called:  0-nothing/start  1-gesund  2-vorbehalt  3-hochzeit  [4-?]-solo
