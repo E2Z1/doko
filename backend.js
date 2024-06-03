@@ -327,7 +327,7 @@ io.on('connection', (socket) => {
       return subArray[0] === 3 && subArray[1] === 4;
     }))
 
-    if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
+    //if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
     
     games.get(game_id).users.push({socketId: socket.id, userId: socket.userId, username, cards, tricks: [], party, points: [], called: 0, special_cards: []});
     //points: [[name, points]]; called:  0-nothing/start  1-gesund  2-vorbehalt  3-hochzeit  [4-?]-solo
