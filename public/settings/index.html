@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Doppelkopf</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css" type="text/css">
+    <link rel="icon" href="/cards/3-4.svg" type="image/x-icon">
+  </head>
+  <body>
+    <div class="navbar">
+      <nav>
+         <ul>
+          <li><a href="/">Home</a></li>
+          <li><a href="/play/">Play</a></li>
+          <li><a href="/settings/">Game Settings</a></li>
+          <li><a href="/rules/">Rules</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="settings">
+      <h1>Settings for creating a new game</h1>
+      <div>
+        <input type="checkbox" id="public">
+        <label for="public">Public</label>
+      </div>
+      <div>
+        <input type="checkbox" id="superpigs">
+        <label for="superpigs">Super-Schweine</label>
+      </div>
+      <div>
+        <input type="checkbox" id="odel">
+        <label for="odel">Ödel Dödel</label>
+      </div>
+      <div>
+        <input type="checkbox" id="klabautermann">
+        <label for="klabautermann">Klabautermann</label>
+      </div>
+      <div>
+        <input type="checkbox" id="feigheit">
+        <label for="feigheit">Feigheit</label>
+      </div>
+      <button id="saveSettings" onclick="saveSettings()">Save Settings</button>
+    </div>
+    <div id="errorContainer" class="error-container">Error: </div>
+    <script src="settings.js"></script>
+  </body>
+</html>
