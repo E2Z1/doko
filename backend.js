@@ -19,7 +19,10 @@ const games = new Map()
 
 
 function isTrump(card,socket,ignOdl=false) {
-    if (card[0] == 0 || card[1] == 3 || card[1] == 4 || (card[0] == 1 && card[1] == 1) || (!ignOdl && card[0] == 1 && card[1] == 5 && games.get(socket.game_id).special_cards.includes(2))) return true; else return false;
+    if (card[0] == 0 || card[1] == 3 || card[1] == 4 || (card[0] == 1 && card[1] == 1) ||
+    (!ignOdl && card[0] == 1 && card[1] == 5 && games.get(socket.game_id).special_cards.includes(2)) ||
+    (!ignOdl && card[0] == 1 && card[1] == 5 && games.get(socket.game_id).users[socket.userId].special_cards.includes(2))) 
+      return true; else return false;
 }
 
 function giveCards(users) {
@@ -143,7 +146,7 @@ function addPoint(points, point_name, val=1) {
   }
   points.push([point_name, val])
 }
-
+const cardsWorth = [0,10,11,2,3,4]
 function endTrick(socket) {
   console.log("Trick ended in game "+socket.game_id)
   const trick_cards = [];
@@ -174,6 +177,18 @@ function endTrick(socket) {
       }
     }
   }
+  //doppelkopf
+  cardVal = 0
+  trick_cards.forEach((card) => cardVal += cardsWorth[card[1]])
+  if (cardVal >= 40) {
+    io.to(socket.game_id).emit('special_point', {point_name: "Doppelkopf", winner})
+    addPoint(game.users[winner].points, "Doppelkopf")
+  }
+  //koppeldopf
+  if (game.settings.koppeldopf && cardVal == 0) {
+    io.to(socket.game_id).emit('special_point', {point_name: "Koppeldopf", winner})
+    addPoint(game.users[winner].points, "Koppeldopf")
+  }
   
 
 
@@ -189,7 +204,6 @@ function endGame(socket) {
   console.log("Game "+socket.game_id+" ended")
   let results = {"1": {users: [], points: {}, eyes: 0}, "0": {users: [], eyes: 0}}
   const game = games.get(socket.game_id);
-  const cardsWorth = [0,10,11,2,3,4]
   const playerCount = Object.keys(game.users).length;
   let card;
   for (let i = 0; i < playerCount; i++) {
@@ -207,7 +221,9 @@ function endGame(socket) {
         results[1].points[game.users[i].points[j][0]] = (game.users[i].party ? 1 : -1) * game.users[i].points[j][1]
     }
   }
-  if (results[1].eyes > 120) results[1].points["Gewonnen"] = 1;
+  if (results[1].eyes > 120) {
+    results[1].points["Gewonnen"] = 1;
+  }
   if (results[1].eyes <= 120) {
     results[1].points["Gewonnen"] = -1;
     results[1].points["Gegen die Alten"] = -1;
@@ -290,7 +306,7 @@ function checkForSuperPigs(socket) {
 function getPublicGames() {
   let publicGames = []
   games.forEach((game, key) => {
-    if (game.settings.public) publicGames.push([key, game.users.length])
+    if (game.settings.public && game.users.length != 4) publicGames.push([key, game.users.length])
   })
   return publicGames
 }

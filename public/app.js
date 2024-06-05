@@ -1,5 +1,4 @@
 const socket = io()
-socket.on("error", (msg) => showError(msg + " (server)"))
 let joinTimeout;
 let users;
 let ownUserId;
@@ -10,7 +9,22 @@ let inAnimation = 0 //not a nice solution but im really not motivated rn, might 
 let removeAnimationTimer;
 let isOdel = false;
 
+socket.on("error", (msg) => {showError(msg + " (server)"); clearTimeout(joinTimeout); document.getElementById('join-game').style.display = 'block'})
+
+
 function getGameSettings() {
+    defaultSettings = {
+        public: true,
+        odel: true,
+        superpigs: true,
+        klabautermann: true,
+        feigheit: true,
+        koppeldopf: true
+    }
+    if (!localStorage.getItem("settings") || Object.keys(JSON.parse(localStorage.getItem("settings"))).length != Object.keys(defaultSettings).length) {
+        //standard preferences by me
+        localStorage.setItem("settings", JSON.stringify(defaultSettings))
+    }
     return JSON.parse(localStorage.getItem("settings"))
 }
 
@@ -41,6 +55,11 @@ document.addEventListener("DOMContentLoaded", function(e) {
 socket.on("init", (data) => {
     ownUserId = data.users.length-1
     ownCards = data.users[ownUserId].cards
+    let numberHeartKings = 0
+    ownCards.forEach((card => {
+        if (card[0] == 1 && card[1] == 5) numberHeartKings += 1
+    }))
+    if (numberHeartKings == 2) isOdel = true
     startGame(data)
     getPlayerElement(data.currentTrick.start).className = 'their-turn'
     currentTrick = data.currentTrick

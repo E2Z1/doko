@@ -101,10 +101,11 @@ nav a:hover {
   display: block;
 }
 
-.settings {
+.settingsMain, .settings {
   color: #e5e5e5;
   margin: 1em;
 }
+
 
 
 
@@ -129,6 +130,7 @@ nav a:hover {
   min-width: 17em;
   width: 40%;
   font-size: 20px;
+  user-select: none;
 }
 
 .select-game-input {

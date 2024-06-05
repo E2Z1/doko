@@ -1,13 +1,15 @@
 document.addEventListener("DOMContentLoaded", function(e) {
-    if (!localStorage.getItem("settings")) {
+    defaultSettings = {
+        public: true,
+        odel: true,
+        superpigs: true,
+        klabautermann: true,
+        feigheit: true,
+        koppeldopf: true
+    }
+    if (!localStorage.getItem("settings") || Object.keys(JSON.parse(localStorage.getItem("settings"))).length != Object.keys(defaultSettings).length) {
         //standard preferences by me
-        localStorage.setItem("settings", JSON.stringify({
-            public: true,
-            odel: true,
-            superpigs: true,
-            klabautermann: true,
-            feigheit: true
-        }))
+        localStorage.setItem("settings", JSON.stringify(defaultSettings))
     }
     const settings = JSON.parse(localStorage.getItem("settings"))
     Object.entries(settings).forEach((setting) => {
