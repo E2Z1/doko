@@ -134,7 +134,8 @@ function censorUserData(odata, UserId) {
     delete user.socketId
     user.tricks = user.tricks.length
     user.points = -1
-    user.special_cards = 0
+    user.special_cards = -1
+    user.called = -1
   });
   return data;
 }
@@ -311,29 +312,31 @@ function getPublicGames() {
   return publicGames
 }
 
+function isValid(cardId, socket) {
+  const curGame = games.get(socket.game_id)
+  if (Object.keys(curGame.users).length != 4 || curGame.type == -1) return false;
+  if (!(curGame.currentTrick[(socket.userId+3)%4] || curGame.currentTrick.start == socket.userId)) return false;
+  if (curGame.currentTrick[socket.userId]) return false;
+  if (!curGame.users[socket.userId].cards[cardId]) return false;
+
+  //actual rules
+  if (curGame.currentTrick.start == socket.userId) return true //the first player can do whatever they want
+  startColor = getColor(curGame.currentTrick[curGame.currentTrick.start], socket)
+  if (getColor(curGame.users[socket.userId].cards[cardId], socket) != startColor) 
+    for (let i = 0; i < curGame.users[socket.userId].cards.length; i++)
+      if (getColor(curGame.users[socket.userId].cards[i], socket) == startColor)
+        return false;
+
+  return true
+}
+
 
 io.on('connection', (socket) => {
 
   socket.emit('public_games', getPublicGames())
 
   //console.log('a user connected')
-  function isValid(cardId) {
-    const curGame = games.get(socket.game_id)
-    if (Object.keys(curGame.users).length != 4) return false;
-    if (!(curGame.currentTrick[(socket.userId+3)%4] || curGame.currentTrick.start == socket.userId)) return false;
-    if (curGame.currentTrick[socket.userId]) return false;
-    if (!curGame.users[socket.userId].cards[cardId]) return false;
 
-    //actual rules
-    if (curGame.currentTrick.start == socket.userId) return true //the first player can do whatever they want
-    startColor = getColor(curGame.currentTrick[curGame.currentTrick.start], socket)
-    if (getColor(curGame.users[socket.userId].cards[cardId], socket) != startColor) 
-      for (let i = 0; i < curGame.users[socket.userId].cards.length; i++)
-        if (getColor(curGame.users[socket.userId].cards[i], socket) == startColor)
-          return false;
-
-    return true
-  }
 
   socket.on('getPublicGames', () => socket.emit('public_games', getPublicGames()))
 
@@ -362,16 +365,18 @@ io.on('connection', (socket) => {
     //if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
     
     games.get(game_id).users.push({socketId: socket.id, userId: socket.userId, username, cards, tricks: [], party, points: [], called: 0, special_cards: []});
-    //points: [[name, points]]; called:  0-nothing/start  1-gesund  2-vorbehalt  3-hochzeit  [4-?]-solo
+    //points: [[name, points]]; called:  0-nothing/start  1-gesund  2-hochzeit  3-armut  4-schmeissen  [5-?]-solo
     //special_cards 0 schweine 1 superschweine 2 oedel doedel
     getSpecialCards(socket)
     socket.emit("init", censorUserData(games.get(game_id), socket.userId))
     console.log("User "+username+" joined game "+game_id)
+
+    if (games.get(game_id).users.length == 4) io.to(games.get(game_id).users[0].socketId).emit("u_call")
   })
 
 
   socket.on('place_card', (card) => {
-    if (isValid(card)) {
+    if (isValid(card, socket)) {
       game = games.get(socket.game_id)
       game.currentTrick[socket.userId] = game.users[socket.userId].cards[card]
       io.to(socket.game_id).emit('placed_card', { userId: socket.userId, card: game.users[socket.userId].cards[card], currentTrick: game.currentTrick});
@@ -401,12 +406,38 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on("call", (call) => {
+    if (call == 1) {
+      io.to(socket.game_id).emit('call', {caller: socket.userId, msg: "Gesund"})
+    } else {
+      io.to(socket.game_id).emit('call', {caller: socket.userId, msg: "Vorbehalt"})
+    }
+    games.get(socket.game_id).users[socket.userId].called = call
+    if (socket.userId+1 < 4) io.to(games.get(socket.game_id).users[socket.userId+1].socketId).emit("u_call")
+    else {
+      let highestUser = 0;
+      let highestCall = 1;
+      games.get(socket.game_id).users.forEach((user) => {
+        if (user.called > highestCall && highestCall < 5) {
+          highestUser = user.userId
+          highestCall = user.called
+        }
+      })
+      if (highestCall != 1) {
+        let vorbehalte = ["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "Solo 1", "Solo 2"]
+        setTimeout(() => {
+          io.to(socket.game_id).emit('call', {caller: highestUser, msg: vorbehalte[highestCall]})
+          games.get(socket.game_id).type = highestCall
+        }, 1000)
+      } else games.get(socket.game_id).type = 1
+    }
+  })
+
   socket.on('disconnect', () => {
     //maybe add logic for removing from game? but they cant reconnect so idk
 
   });
 })
-
 
 
 server.listen(port, () => {

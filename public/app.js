@@ -73,6 +73,37 @@ document.addEventListener("mousemove", function(e) {
 document.getElementById("game_id").addEventListener('keypress', function(event) {
     if (event.key === 'Enter') joinGame()})
 
+socket.on("u_call", () => {
+    let callElement = document.getElementById("call")
+    let inner = `<a onclick="handleCall(1)">Gesund</a><a onclick="handleCall(5)">Solo</a>`
+    let nines = 0;
+    let kings = 0;
+    let queensOfClubs = 0;
+    let trumps = 0;
+    ownCards.forEach((card) => {
+        if (card[1] == 0) nines++;
+        if (card[1] == 5) kings++;
+        if (card[0] == 3 && card[1] == 4) queensOfClubs++;
+        if (isTrump(card)) trumps++;
+    })
+
+    if (queensOfClubs == 2) inner += `<a onclick="handleCall(2)">Hochzeit</a>`
+    if (nines >= 5 || kings >= 5 || (nines == 4 && kings == 4)) inner += `<a onclick="handleCall(4)">Schmeißen</a>`
+    if (trumps <= 3) inner += `<a onclick="handleCall(3)">Armut</a>`
+    callElement.innerHTML = inner
+    callElement.style.display = "block"
+})
+
+function handleCall(call) {
+    //called:  0-nothing/start  1-gesund  2-hochzeit  3-armut  4-schmeissen  [5-?]-solo (straight up copied from the backend file)
+    if (call == 5) {
+        document.getElementById("call").innerHTML = `<a onclick="handleCall(6)">Solo 1</a><a onclick="handleCall(7)">Solo 2</a>`
+        return
+    }
+    socket.emit("call", call)
+    document.getElementById("call").style.display = "none"
+}
+
 function startGame(data) {
     clearTimeout(joinTimeout)
     if (document.getElementsByClassName("select-game")[0]) document.getElementsByClassName("select-game")[0].remove();
@@ -168,6 +199,8 @@ socket.on('new_trick', (trick) => {
 })
 
 socket.on('game_ended', (results) => setTimeout(() => renderResult(results), 700))
+
+socket.on('call', (data) => showCalled(data.caller, data.msg))
 
 socket.on('special_point', (data) => showCalled(data.winner, data.point_name))
 
