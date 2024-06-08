@@ -149,14 +149,12 @@ function addPoint(points, point_name, val=1) {
 }
 const cardsWorth = [0,10,11,2,3,4]
 function endTrick(socket) {
-  console.log("Trick ended in game "+socket.game_id)
   const trick_cards = [];
   const game = games.get(socket.game_id);
   for (let i = game.currentTrick.start; i < 4+game.currentTrick.start;i++) trick_cards.push(game.currentTrick[(i%4).toString()]);
   const highestCard = getHighestCard(trick_cards, socket)
   const winner = (highestCard+game.currentTrick.start)%4;
   game.users[winner].tricks.push(...trick_cards)
-  console.log(trick_cards, highestCard)
 
   //special points
   //fuchs
@@ -201,13 +199,17 @@ function endTrick(socket) {
   if (Object.keys(game.users[0].cards).length == 0) endGame(socket);
 }
 
+const announcementNames = ["Error", "", "Keine 9", "Keine 6", "Keine 3", "Schwarz"]
+const announcementValues = [241, 241, 150, 180, 210, 239] //first unreachable second custom (so both impossible values in case they still get triggered for some reason)
+
 function endGame(socket) {
   console.log("Game "+socket.game_id+" ended")
   let results = {"1": {users: [], points: {}, eyes: 0}, "0": {users: [], eyes: 0}}
   const game = games.get(socket.game_id);
   const playerCount = Object.keys(game.users).length;
   let card;
-  for (let i = 0; i < playerCount; i++) {
+
+  for (let i = 0; i < playerCount; i++) { //after main points
     let count = 0;
     for (let j = 0; j < game.users[i].tricks.length; j++) {
       card = game.users[i].tricks[j];
@@ -215,13 +217,15 @@ function endGame(socket) {
     }
     results[game.users[i].party].eyes += count;
     results[game.users[i].party].users.push(game.users[i].username)
-    for (let j = 0; j < game.users[i].points.length; j++) {
-      if (results[1].points[game.users[i].points[j][0]])
-        results[1].points[game.users[i].points[j][0]] += (game.users[i].party ? 1 : -1) * game.users[i].points[j][1]
-      else 
-        results[1].points[game.users[i].points[j][0]] = (game.users[i].party ? 1 : -1) * game.users[i].points[j][1]
-    }
   }
+
+  let highestAnnouncements = [0, 0]
+  games.get(socket.game_id).users.forEach((user) => {
+    if (user.announced > highestAnnouncements[user.party]) {
+      highestAnnouncements[user.party] = user.announced
+    }
+  })
+
   if (results[1].eyes > 120) {
     results[1].points["Gewonnen"] = 1;
   }
@@ -229,6 +233,55 @@ function endGame(socket) {
     results[1].points["Gewonnen"] = -1;
     results[1].points["Gegen die Alten"] = -1;
   }
+  let wrongCalled = [false, false]
+  let points = results[1].points
+  for (let i = announcementValues.length-1; i > 1; i--) {
+    if (results[1].eyes > announcementValues[i]) {
+      if (points[announcementNames[i]]) points[announcementNames[i]] += 1
+      else points[announcementNames[i]] = 1
+    }
+    if (results[0].eyes > announcementValues[i]) {
+      if (points[announcementNames[i]]) points[announcementNames[i]] += -1
+      else points[announcementNames[i]] = 1
+    }
+  }
+  for (let j = 0; j < 2; j++) {
+    for (let i = highestAnnouncements[j]; i > 1; i--) {
+      if (results[j].eyes > announcementValues[i] && !wrongCalled[j]){
+        if (points[announcementNames[i]+" angesagt"]) points[announcementNames[i]+" angesagt"] += (2*j)+(-1)
+        else points[announcementNames[i]+" angesagt"] = (2*j)+(-1)
+
+      } else {
+        if (points[announcementNames[i]+" falsch angesagt"]) points[announcementNames[i]+" falsch angesagt"] += 1-(2*j) 
+        else points[announcementNames[i]+" falsch angesagt"] = 1-(2*j)
+        console.log(1-(2*j))
+        wrongCalled[j] = true
+      }
+    }
+  }
+
+  if (results[1].eyes > 120) {
+    if (highestAnnouncements[1] >= 1 && !wrongCalled[1]) results[1].points["Re"] = 2
+    if (highestAnnouncements[0] >= 1) results[1].points["Kontra falsch"] = 2        //wrongCalled is not getting called because [insert reason]
+  }
+
+  if (results[1].eyes <= 120) {
+    if (highestAnnouncements[0] >= 1 && !wrongCalled[0]) results[1].points["Kontra"] = -2
+    if (highestAnnouncements[1] >= 1) results[1].points["Re falsch"] = -2
+  }
+  if (wrongCalled[0]) results[1].points["Kontra falsch"] = 2
+  if (wrongCalled[1]) results[1].points["Re falsch"] = -2
+
+  for (let i = 0; i < playerCount; i++) { //after main points
+    for (let j = 0; j < game.users[i].points.length; j++) {
+      if (results[1].points[game.users[i].points[j][0]])
+        results[1].points[game.users[i].points[j][0]] += (game.users[i].party ? 1 : -1) * game.users[i].points[j][1]
+      else 
+        results[1].points[game.users[i].points[j][0]] = (game.users[i].party ? 1 : -1) * game.users[i].points[j][1]
+    }
+  }
+
+
   console.log(results);
   io.to(socket.game_id).emit('game_ended', results)
   games.delete(socket.game_id)
@@ -358,15 +411,21 @@ io.on('connection', (socket) => {
     }
 
     cards = giveCards(games.get(game_id).users)
+
+
+    if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
+    //if (socket.userId == 1) cards = [[1,0],[1,0],[3,0],[0,0],[0,0],[0,2],[0,2],[2,4],[3,4],[3,4],[1,1],[1,1]]
+
     party = Number(cards.some(subArray => {
       return subArray[0] === 3 && subArray[1] === 4;
     }))
 
-    //if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
     
-    games.get(game_id).users.push({socketId: socket.id, userId: socket.userId, username, cards, tricks: [], party, points: [], called: 0, special_cards: []});
-    //points: [[name, points]]; called:  0-nothing/start  1-gesund  2-hochzeit  3-armut  4-schmeissen  [5-?]-solo
+    games.get(game_id).users.push({socketId: socket.id, userId: socket.userId, username, cards, tricks: [], party, points: [], called: 0, special_cards: [], announced: 0});
+    //points: [[name, points]]
+    //called:  0-nothing/start  1-gesund  2-hochzeit  3-armut  4-schmeissen  [5-?]-solo
     //special_cards 0 schweine 1 superschweine 2 oedel doedel
+    //announced: 0 nothing   1- re/kontra   2- keine 9   3- keine 6   4- keine 3   5- schwarz
     getSpecialCards(socket)
     socket.emit("init", censorUserData(games.get(game_id), socket.userId))
     console.log("User "+username+" joined game "+game_id)
@@ -376,6 +435,10 @@ io.on('connection', (socket) => {
 
 
   socket.on('place_card', (card) => {
+    if (!games.get(socket.game_id)) {
+      socket.emit("error", "game doesnt exist")
+      return false
+    }
     if (isValid(card, socket)) {
       game = games.get(socket.game_id)
       game.currentTrick[socket.userId] = game.users[socket.userId].cards[card]
@@ -407,30 +470,74 @@ io.on('connection', (socket) => {
   });
 
   socket.on("call", (call) => {
+    if (!games.get(socket.game_id)) {
+      socket.emit("error", "game doesnt exist")
+      return false
+    }
+    let legal = true;
     if (call == 1) {
       io.to(socket.game_id).emit('call', {caller: socket.userId, msg: "Gesund"})
     } else {
-      io.to(socket.game_id).emit('call', {caller: socket.userId, msg: "Vorbehalt"})
-    }
-    games.get(socket.game_id).users[socket.userId].called = call
-    if (socket.userId+1 < 4) io.to(games.get(socket.game_id).users[socket.userId+1].socketId).emit("u_call")
-    else {
-      let highestUser = 0;
-      let highestCall = 1;
-      games.get(socket.game_id).users.forEach((user) => {
-        if (user.called > highestCall && highestCall < 5) {
-          highestUser = user.userId
-          highestCall = user.called
-        }
+      let nines = 0;
+      let kings = 0;
+      let queensOfClubs = 0;
+      let trumps = 0;
+      games.get(socket.game_id).users[socket.userId].cards.forEach((card) => {
+          if (card[1] == 0) nines++;
+          if (card[1] == 5) kings++;
+          if (card[0] == 3 && card[1] == 4) queensOfClubs++;
+          if (isTrump(card, socket)) trumps++;
       })
-      if (highestCall != 1) {
-        let vorbehalte = ["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "Solo 1", "Solo 2"]
-        setTimeout(() => {
-          io.to(socket.game_id).emit('call', {caller: highestUser, msg: vorbehalte[highestCall]})
-          games.get(socket.game_id).type = highestCall
-        }, 1000)
-      } else games.get(socket.game_id).type = 1
+      if (call == 2 && queensOfClubs != 2) legal = false;
+      if (call == 4 && !(nines >= 5 || kings >= 5 || (nines == 4 && kings == 4))) legal = false;
+      if (call == 3 && trumps > 3) legal = false;
+      if (legal) io.to(socket.game_id).emit('call', {caller: socket.userId, msg: "Vorbehalt"})
     }
+    if (legal) {
+      games.get(socket.game_id).users[socket.userId].called = call
+      if (socket.userId+1 < 4) io.to(games.get(socket.game_id).users[socket.userId+1].socketId).emit("u_call")
+      else {
+        let highestUser = 0;
+        let highestCall = 1;
+        games.get(socket.game_id).users.forEach((user) => {
+          if (user.called > highestCall && highestCall < 5) {
+            highestUser = user.userId
+            highestCall = user.called
+          }
+        })
+        if (highestCall != 1) {
+          let vorbehalte = ["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "Solo 1", "Solo 2"]
+          setTimeout(() => {
+            io.to(socket.game_id).emit('call', {caller: highestUser, msg: vorbehalte[highestCall], type: highestCall})
+            games.get(socket.game_id).type = highestCall
+            if (highestCall == 4) games.delete(socket.game_id)
+            io.to(socket.game_id).emit("actual_game_start")
+          }, 2000)
+        } else {
+          games.get(socket.game_id).type = 1
+          io.to(socket.game_id).emit("actual_game_start")
+        }
+      }
+    } else {
+      io.to(socket.id).emit("u_call")
+      io.to(socket.id).emit("error", "illegal call")
+    }
+  })
+
+  socket.on("announce", () => {
+    if (!games.get(socket.game_id)) {
+      socket.emit("error", "game doesnt exist")
+      return false
+    }
+    let highestAnnouncement = 0
+    games.get(socket.game_id).users.forEach((user) => {
+      if (user.party == games.get(socket.game_id).users[socket.userId].party && user.announced > highestAnnouncement) {
+        highestAnnouncement = user.announced
+      }
+    })
+    let lowestPossibleAnnouncement = 12 - games.get(socket.game_id).users[socket.userId].cards.length
+    games.get(socket.game_id).users[socket.userId].announced = Math.max(highestAnnouncement + 1, lowestPossibleAnnouncement)
+    io.to(socket.game_id).emit("announced", {announcer: socket.userId, announced: Math.max(highestAnnouncement + 1, lowestPossibleAnnouncement), party: games.get(socket.game_id).users[socket.userId].party})
   })
 
   socket.on('disconnect', () => {
@@ -443,5 +550,3 @@ io.on('connection', (socket) => {
 server.listen(port, () => {
   console.log(`App listening on port ${port}`)
 })
-
-console.log('server did load')

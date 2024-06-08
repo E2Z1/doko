@@ -39,6 +39,7 @@
       </div>
       <div id="player0">
         <div class="tricks"></div>
+        <a id="announcement" onclick="handleAnnouncement()"></a>
         <div class="cards"></div>
         <a class="called"></a>
       </div>
@@ -46,9 +47,38 @@
         <img class="trickCard" src="/cards/0-2.svg" style="--i:1"><img class="trickCard" src="/cards/0-5.svg" style="--i:2"><img class="trickCard" src="/cards/0-4.svg" style="--i:3"><img class="trickCard" src="/cards/1-1.svg" style="--i:4">
       </div>
       <div id="call"></div>
+
+      <div id="showSettings">
+        <h4>Settings</h4>
+        <div>
+          <input type="checkbox" id="public" onclick="return false;">
+          <label for="public">Public</label>
+        </div>
+        <div>
+          <input type="checkbox" id="superpigs" onclick="return false;">
+          <label for="superpigs">Super-Schweine</label>
+        </div>
+        <div>
+          <input type="checkbox" id="odel" onclick="return false;">
+          <label for="odel">Ödel Dödel</label>
+        </div>
+        <div>
+          <input type="checkbox" id="klabautermann" onclick="return false;">
+          <label for="klabautermann">Klabautermann</label>
+        </div>
+        <div>
+          <input type="checkbox" id="feigheit" onclick="return false;">
+          <label for="feigheit">Feigheit</label>
+        </div>
+        <div>
+          <input type="checkbox" id="koppeldopf" onclick="return false;">
+          <label for="koppeldopf">Koppeldopf</label>
+        </div>
+      </div>
       <div class="result-container">
       </div>
     </div>
+
     <div class="select-game">
       <div class="select-game-input">
         <div>

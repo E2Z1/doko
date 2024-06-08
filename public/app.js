@@ -8,8 +8,14 @@ const admins = ["ez", "E2Z1"]
 let inAnimation = 0 //not a nice solution but im really not motivated rn, might change it later
 let removeAnimationTimer;
 let isOdel = false;
+let curSettings;
+let highestAnnouncement = 0
 
-socket.on("error", (msg) => {showError(msg + " (server)"); clearTimeout(joinTimeout); document.getElementById('join-game').style.display = 'block'})
+socket.on("error", (msg) => {
+    showError(msg + " (server)")
+    clearTimeout(joinTimeout)
+    if (document.getElementById('join-game')) document.getElementById('join-game').style.display = 'block'
+})
 
 
 function getGameSettings() {
@@ -55,14 +61,18 @@ document.addEventListener("DOMContentLoaded", function(e) {
 socket.on("init", (data) => {
     ownUserId = data.users.length-1
     ownCards = data.users[ownUserId].cards
+    curSettings = data.settings;
     let numberHeartKings = 0
     ownCards.forEach((card => {
         if (card[0] == 1 && card[1] == 5) numberHeartKings += 1
     }))
     if (numberHeartKings == 2) isOdel = true
     startGame(data)
-    getPlayerElement(data.currentTrick.start).className = 'their-turn'
     currentTrick = data.currentTrick
+    Object.entries(curSettings).forEach((setting) => {
+        document.getElementById(setting[0]).checked = setting[1]
+    })
+    document.getElementById("showSettings").style.display = "block"
 })
 lastTrick = document.getElementsByClassName("lastTrick")[0]
 document.addEventListener("mousemove", function(e) {
@@ -94,6 +104,47 @@ socket.on("u_call", () => {
     callElement.style.display = "block"
 })
 
+socket.on("actual_game_start", () => {
+    document.getElementById("showSettings").style.display = "none"
+    getPlayerElement(currentTrick.start).className = 'their-turn'
+    updateAnnouncement()
+})
+
+function handleAnnouncement() {
+    socket.emit("announce")
+}
+
+//announced: 0 nothing   1- re/kontra   2- keine 9   3- keine 6   4- keine 3   5- schwarz
+let announcements = ["Error", "Re/Kontra", "Keine 9", "Keine 6", "Keine 3", "Schwarz"]
+socket.on("announced", (data) => {
+    let msg = ""
+    let suffix
+    if (data.party == 1) suffix = "Re"
+    if (data.party == 0) suffix = "Kontra"
+    if (data.announced == 1) msg = suffix
+    else {
+        msg = announcements[data.announced] + ` (${suffix})`
+    }
+    if (data.party == users[ownUserId].party) {
+        highestAnnouncement = data.announced
+        updateAnnouncement()
+    }
+    showCalled(data.announcer, msg)
+})
+
+function updateAnnouncement() {
+    let lowestPossibleAnnouncement = 12 - ownCards.length
+    if (highestAnnouncement >= 5 || lowestPossibleAnnouncement > 5) {
+        document.getElementById("announcement").style.display = "none"
+        return
+    }
+    if (highestAnnouncement == 0 && lowestPossibleAnnouncement <= 1) document.getElementById("announcement").innerHTML = users[ownUserId].party ? "Re" : "Kontra"
+    else {
+        document.getElementById("announcement").innerHTML = announcements[Math.max(highestAnnouncement+1, lowestPossibleAnnouncement)]
+    }
+    document.getElementById("announcement").style.display = "block"
+}
+
 function handleCall(call) {
     //called:  0-nothing/start  1-gesund  2-hochzeit  3-armut  4-schmeissen  [5-?]-solo (straight up copied from the backend file)
     if (call == 5) {
@@ -116,6 +167,7 @@ function startGame(data) {
 }
 
 socket.on('public_games', (games) => {
+    if (!document.getElementsByClassName("games")[0]) return false;
     let gamesElement = document.getElementsByClassName("games")[0]
     gamesElement.innerHTML = ''
     games.forEach((game) => {
@@ -165,13 +217,12 @@ function cardPlaced(data) {
 
     if (data.userId == ownUserId) {
         ownCards.splice(getIndexOfCard(ownCards,data.card),1)
+        updateAnnouncement()
     } else {
         users[data.userId].cards -= 1
     }
     currentTrick = data.currentTrick
     renderCardsfor(data.userId)
-    inAnimation = 1
-    removeAnimationTimer = setTimeout(() => inAnimation = 0, 500)
 }
 
 socket.on('new_trick', (trick) => {
@@ -200,7 +251,10 @@ socket.on('new_trick', (trick) => {
 
 socket.on('game_ended', (results) => setTimeout(() => renderResult(results), 700))
 
-socket.on('call', (data) => showCalled(data.caller, data.msg))
+socket.on('call', (data) => {
+    showCalled(data.caller, data.msg)
+    if (data.type == 4) setTimeout(() => location.reload(), 1500)
+})
 
 socket.on('special_point', (data) => showCalled(data.winner, data.point_name))
 
@@ -211,6 +265,7 @@ socket.on('special_card', (data) => {
 
 function showCalled(id, msg) {
     let elem = getPlayerElement(id).querySelector('.called')
+    elem.style.display = "none"     // so the animation starts again
     elem.innerHTML = msg
     elem.style.display = "block"
     inAnimation = 1
@@ -232,10 +287,10 @@ function getPlayerElement(playerId) {
 
 function renderCardsfor(userid) {
     if (users[userid].party != -1) {
-        document.getElementById("player0").querySelector('.cards').innerHTML = ''
+        getCardsElement(userid).innerHTML = ''
         userCards = users[userid].cards;
         for (let j = 0; j<users[userid].cards.length;j++) {
-            document.getElementById("player0").querySelector('.cards').innerHTML += '<img class="card" onclick="placeCard('+j+')" src="/cards/'+userCards[j][0]+'-'+userCards[j][1]+'.svg" style="--i:'+(j-(Math.ceil(Object.keys(userCards).length/2)-1))+'">'
+            getCardsElement(userid).innerHTML += '<img class="card" onclick="placeCard('+j+')" src="/cards/'+userCards[j][0]+'-'+userCards[j][1]+'.svg" style="--i:'+(j-(Math.ceil(Object.keys(userCards).length/2)-1))+'">'
         }
     } else {
         userCards = users[userid].cards;
@@ -244,7 +299,7 @@ function renderCardsfor(userid) {
         for (let j = 0; j<userCards;j++) {
             elem.innerHTML += '<img class="card" src="/cards/back.svg" style="--i:'+(j-(Math.ceil(userCards/2)-1))+'">'
         }
-        elem.innerHTML += `<p id="player-name" ${admins.includes(users[userid].username) ? 'class="admin"' : ''}>${users[userid].username}</p>`;
+        getPlayerElement(userid).innerHTML += `<p id="player-name" ${admins.includes(users[userid].username) ? 'class="admin"' : ''}>${users[userid].username}</p>`;
     }
 }
 

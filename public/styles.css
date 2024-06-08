@@ -78,7 +78,6 @@ nav a:hover {
   display: none;
   background: linear-gradient(180deg, #f1f1f1 0%, #ffffff 100%);
   border-radius: 10px;
-  display: none;
   justify-content: center;
   align-items: center;
   position: fixed;
@@ -86,10 +85,11 @@ nav a:hover {
   left: 50%;
   transform: translate(-50%, -50%);
   box-shadow: 0 1px 2px 0 #000000;
+  overflow: scroll;
 }
 
 .result-container table {
-  border-spacing: 20px;
+  border-spacing: 1em;
   margin: 40px;
 }
 
@@ -106,8 +106,26 @@ nav a:hover {
   margin: 1em;
 }
 
+main p {
+  margin: 10px;
+  color: #e5e5e5;
+}
 
+#showSettings {
+  background: linear-gradient(180deg, #f1f1f1 0%, #ffffff 100%);
+  border-radius: 10px;
+  position: fixed;
+  top: 5%;
+  right: 5%;
+  box-shadow: 0 1px 2px 0 #000000;
+  overflow: hidden;
+  padding: 5px;
+  display: none;
+}
 
+#showSettings h4 {
+  margin: 1px;
+}
 
 #saveSettings {
   display: block;
@@ -375,6 +393,8 @@ button:active {
   padding: 8px;
   user-select: none;
   border: 4px solid #f1f1f1;
+  display: none;
+  text-wrap: nowrap;
 }
 
 @keyframes calling {
