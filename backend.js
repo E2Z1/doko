@@ -156,6 +156,24 @@ function endTrick(socket) {
   const winner = (highestCard+game.currentTrick.start)%4;
   game.users[winner].tricks.push(...trick_cards)
 
+  //hochzeit
+  if (game.type == 2) {
+    if (game.users[0].cards.length >= 9) {
+      game.users.forEach((user) => {
+        if (user.called == 2 && user.userId != winner) {
+          game.users[winner].party = 1
+          game.type = 0
+          io.to(game.users[winner].socketId).emit("change_party", 1)
+          io.to(socket.game_id).emit("allow_announcements")
+        }
+      })
+    } else {
+      game.type = 5 // basically karo solo
+      io.to(socket.game_id).emit("allow_announcements")
+      games.get(socket.game_id).startAnnouncementsCards = games.get(socket.game_id).users[0].cards.length
+    }
+  }
+
   //special points
   //fuchs
   foxIndex = trick_cards.findIndex(arr => arr[0] === 0 && arr[1] === 2);
@@ -200,7 +218,7 @@ function endTrick(socket) {
 }
 
 const announcementNames = ["Error", "", "Keine 9", "Keine 6", "Keine 3", "Schwarz"]
-const announcementValues = [241, 241, 150, 180, 210, 239] //first unreachable second custom (so both impossible values in case they still get triggered for some reason)
+const announcementValues = [241, 241, 150, 180, 210, 239] //first unreachable; second custom (so both impossible values in case they still get triggered for some reason)
 
 function endGame(socket) {
   console.log("Game "+socket.game_id+" ended")
@@ -406,7 +424,7 @@ io.on('connection', (socket) => {
 
 
     if (!games.has(game_id)) {
-        games.set(game_id, {settings, users: [], currentTrick: {"start": 0}, results: {}, type: -1, special_cards: []});
+        games.set(game_id, {settings, users: [], currentTrick: {"start": 0}, results: {}, type: -1, special_cards: [], startAnnouncementsCards: 12});
         //type -1 not set (not started)  0 normal  1 solo or something
     }
 
@@ -512,10 +530,12 @@ io.on('connection', (socket) => {
             games.get(socket.game_id).type = highestCall
             if (highestCall == 4) games.delete(socket.game_id)
             io.to(socket.game_id).emit("actual_game_start")
+            if (highestCall != 2) io.to(socket.game_id).emit("allow_announcements")
           }, 2000)
         } else {
           games.get(socket.game_id).type = 1
           io.to(socket.game_id).emit("actual_game_start")
+          io.to(socket.game_id).emit("allow_announcements")
         }
       }
     } else {
@@ -535,7 +555,7 @@ io.on('connection', (socket) => {
         highestAnnouncement = user.announced
       }
     })
-    let lowestPossibleAnnouncement = 12 - games.get(socket.game_id).users[socket.userId].cards.length
+    let lowestPossibleAnnouncement = games.get(socket.game_id).startAnnouncementsCards - games.get(socket.game_id).users[socket.userId].cards.length
     games.get(socket.game_id).users[socket.userId].announced = Math.max(highestAnnouncement + 1, lowestPossibleAnnouncement)
     io.to(socket.game_id).emit("announced", {announcer: socket.userId, announced: Math.max(highestAnnouncement + 1, lowestPossibleAnnouncement), party: games.get(socket.game_id).users[socket.userId].party})
   })

@@ -10,6 +10,7 @@ let removeAnimationTimer;
 let isOdel = false;
 let curSettings;
 let highestAnnouncement = 0
+let startAnnouncementsCards = 0
 
 socket.on("error", (msg) => {
     showError(msg + " (server)")
@@ -107,8 +108,16 @@ socket.on("u_call", () => {
 socket.on("actual_game_start", () => {
     document.getElementById("showSettings").style.display = "none"
     getPlayerElement(currentTrick.start).className = 'their-turn'
-    updateAnnouncement()
 })
+
+socket.on("change_party", (party) => {
+    users[ownUserId].party = party
+})
+socket.on("allow_announcements", () => {
+    updateAnnouncement()
+    startAnnouncementsCards = ownCards.length
+})
+
 
 function handleAnnouncement() {
     socket.emit("announce")
@@ -133,7 +142,7 @@ socket.on("announced", (data) => {
 })
 
 function updateAnnouncement() {
-    let lowestPossibleAnnouncement = 12 - ownCards.length
+    let lowestPossibleAnnouncement = startAnnouncementsCards - ownCards.length
     if (highestAnnouncement >= 5 || lowestPossibleAnnouncement > 5) {
         document.getElementById("announcement").style.display = "none"
         return
@@ -217,7 +226,7 @@ function cardPlaced(data) {
 
     if (data.userId == ownUserId) {
         ownCards.splice(getIndexOfCard(ownCards,data.card),1)
-        updateAnnouncement()
+        if (document.getElementById("announcement").style.display == "block") updateAnnouncement()
     } else {
         users[data.userId].cards -= 1
     }
