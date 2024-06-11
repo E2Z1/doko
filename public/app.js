@@ -105,6 +105,13 @@ socket.on("u_call", () => {
     callElement.style.display = "block"
 })
 
+socket.on("u_call_armut", () => {
+    let callElement = document.getElementById("call")
+    let inner = `<a onclick="handleCall(1,armut=true)">Mitnehmen</a><a onclick="handleCall(0,armut=true)">Ablehnen</a>`
+    callElement.innerHTML = inner
+    callElement.style.display = "block"
+})
+
 socket.on("actual_game_start", () => {
     document.getElementById("showSettings").style.display = "none"
     getPlayerElement(currentTrick.start).className = 'their-turn'
@@ -154,8 +161,13 @@ function updateAnnouncement() {
     document.getElementById("announcement").style.display = "block"
 }
 
-function handleCall(call) {
+function handleCall(call, armut=false) {
     //called:  0-nothing/start  1-gesund  2-hochzeit  3-armut  4-schmeissen  [5-?]-solo (straight up copied from the backend file)
+    if (armut) {
+        socket.emit("call_armut", call)
+        document.getElementById("call").style.display = "none"
+        return
+    }
     if (call == 5) {
         document.getElementById("call").innerHTML = `<a onclick="handleCall(6)">Solo 1</a><a onclick="handleCall(7)">Solo 2</a>`
         return

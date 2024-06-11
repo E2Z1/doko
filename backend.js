@@ -529,6 +529,11 @@ io.on('connection', (socket) => {
             io.to(socket.game_id).emit('call', {caller: highestUser, msg: vorbehalte[highestCall], type: highestCall})
             games.get(socket.game_id).type = highestCall
             if (highestCall == 4) games.delete(socket.game_id)
+            if (highestCall == 3) {
+              if (socket.userId == 0) io.to(games.get(game_id).users[1].socketId).emit("u_call_armut")
+              else io.to(games.get(socket.game_id).users[0].socketId).emit("u_call_armut")
+              return
+            }
             io.to(socket.game_id).emit("actual_game_start")
             if (highestCall != 2) io.to(socket.game_id).emit("allow_announcements")
           }, 2000)
@@ -541,6 +546,42 @@ io.on('connection', (socket) => {
     } else {
       io.to(socket.id).emit("u_call")
       io.to(socket.id).emit("error", "illegal call")
+    }
+  })
+
+  socket.on("call_armut", (call) => {
+    if (!games.get(socket.game_id)) {
+      socket.emit("error", "game doesnt exist")
+      return false
+    }
+    
+    io.to(socket.game_id).emit('call', {caller: socket.userId, msg: ["Ablehnen", "Mitnehmen"][call], type: -1})
+    if (call) {
+      games.get(socket.game_id).users.forEach((user) => {
+        if (user.userId == socket.userId || user.called == 3) {
+          games.get(socket.game_id).users[user.userId].party = 1
+          io.to(user.socketId).emit("change_party", 1)
+        } else {
+          games.get(socket.game_id).users[user.userId].party = 0
+          io.to(user.socketId).emit("change_party", 0)
+        }
+      })
+      io.to(socket.game_id).emit("actual_game_start")
+      io.to(socket.game_id).emit("allow_announcements")
+      return
+    } else {
+      next = socket.userId+1
+      if (next >= 3 || games.get(socket.game_id).users[next].called == 3) next += 1
+      if (next > 3) {
+        games.get(socket.game_id).users.forEach((user) => {
+          if (user.called == 3) {
+            io.to(socket.game_id).emit('call', {caller: user.userId, msg: "Schmeißen", type: 4})
+            games.delete(socket.game_id)
+            return
+          }
+        })
+      }
+      else io.to(games.get(socket.game_id).users[next].socketId).emit("u_call_armut")
     }
   })
 
