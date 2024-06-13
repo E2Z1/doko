@@ -331,10 +331,19 @@ function renderCardsforAll() {
 }
 
 function placeCard(i) {
+    if (document.querySelector(".armut-give").style.display == "block") {
+        document.querySelector(".armut-cards").innerHTML += '<img onclick="removeArmutCard('+document.querySelector(".armut-cards").childElementCount+')" src="/cards/'+ownCards[i][0]+'-'+ownCards[i][1]+'.svg">'
+        ownCards.splice(i,1) //renderCardsFor uses users.cards may not work
+        renderCardsfor(ownUserId)
+        return
+    }
     if (isValid(i)) socket.emit('place_card', i)
     else showError("invalid move")
 }
 
+function removeArmutCard(i) {
+    document.querySelector(".armut-cards").children[i].remove()
+}
 
 
 function showError(error) {

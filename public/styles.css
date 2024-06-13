@@ -344,6 +344,37 @@ button:active {
   cursor: auto !important;
 }
 
+.armut-give {
+  display: flex;
+  position: absolute;
+  bottom: 33%;
+  left: 50%;
+  transform: translate(-50%);
+  flex-direction: column;
+  background: rgba(200, 200, 200, 0.8);
+  padding: 10px;
+  border-radius: 6px;
+  box-shadow: 0 3px 4px 0 #000000;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px); /* why tf is it required to put -webkit in front of everything for apple */
+}
+
+.armut-cards {
+  display: flex;
+  text-wrap: nowrap;
+  height: 30vh;
+  gap: 5px;
+}
+
+.armut-cards img {
+  height: 30vh;
+  filter: drop-shadow(2px 2px 2px #000000);
+}
+
+#armut-release-button {
+  margin-top: 10px;
+}
+
 .closeX {
   cursor: pointer;
   position: absolute;

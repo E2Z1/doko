@@ -5,80 +5,94 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css" type="text/css">
-    <link rel="icon" href="/cards/3-4.svg" type="image/x-icon">
+    <link rel="stylesheet" href="../styles.css" type="text/css">
+    <link rel="icon" href="../cards/3-4.svg" type="image/x-icon">
   </head>
   <body>
     <div class="game-container">
-      <div id="current_trick">
-        <img class="trickCard" src="/cards/0-2.svg" style="--i:0">
-        <img class="trickCard" src="/cards/0-3.svg" style="--i:1">
-        <img class="trickCard" src="/cards/0-4.svg" style="--i:2">
-        <img class="trickCard" src="/cards/0-5.svg" style="--i:3">
+      <div id="current_trick" style="display: none;">
+        <img class="trickCard" src="../cards/0-2.svg" style="--i:0">
+        <img class="trickCard" src="../cards/0-3.svg" style="--i:1">
+        <img class="trickCard" src="../cards/0-4.svg" style="--i:2">
+        <img class="trickCard" src="../cards/0-5.svg" style="--i:3">
       </div>
       <div id="player2" class="hand">
-        <img class="card" src="/cards/back.svg" style="--i:-5">
-        <img class="card" src="/cards/back.svg" style="--i:-4">
-        <img class="card" src="/cards/back.svg" style="--i:-3">
-        <img class="card" src="/cards/back.svg" style="--i:-2">
-        <img class="card" src="/cards/back.svg" style="--i:-1">
-        <img class="card" src="/cards/back.svg" style="--i:0">
-        <img class="card" src="/cards/back.svg" style="--i:1">
-        <img class="card" src="/cards/back.svg" style="--i:2">
-        <img class="card" src="/cards/back.svg" style="--i:3">
-        <img class="card" src="/cards/back.svg" style="--i:4">
-        <img class="card" src="/cards/back.svg" style="--i:5">
-        <img class="card" src="/cards/back.svg" style="--i:6">
+        <img class="card" src="../cards/back.svg" style="--i:-5">
+        <img class="card" src="../cards/back.svg" style="--i:-4">
+        <img class="card" src="../cards/back.svg" style="--i:-3">
+        <img class="card" src="../cards/back.svg" style="--i:-2">
+        <img class="card" src="../cards/back.svg" style="--i:-1">
+        <img class="card" src="../cards/back.svg" style="--i:0">
+        <img class="card" src="../cards/back.svg" style="--i:1">
+        <img class="card" src="../cards/back.svg" style="--i:2">
+        <img class="card" src="../cards/back.svg" style="--i:3">
+        <img class="card" src="../cards/back.svg" style="--i:4">
+        <img class="card" src="../cards/back.svg" style="--i:5">
+        <img class="card" src="../cards/back.svg" style="--i:6">
         <p id="player-name">Loremsssss</p>
         <a class="called"></a>
       </div>
       <div id="player1" class="hand">
-        <div class="tricks"><img class="card" src="/cards/back.svg"></div>
-        <img class="card" src="/cards/back.svg" style="--i:-5">
-        <img class="card" src="/cards/back.svg" style="--i:-4">
-        <img class="card" src="/cards/back.svg" style="--i:-3">
-        <img class="card" src="/cards/back.svg" style="--i:-2">
-        <img class="card" src="/cards/back.svg" style="--i:-1">
-        <img class="card" src="/cards/back.svg" style="--i:0">
-        <img class="card" src="/cards/back.svg" style="--i:1">
-        <img class="card" src="/cards/back.svg" style="--i:2">
-        <img class="card" src="/cards/back.svg" style="--i:3">
-        <img class="card" src="/cards/back.svg" style="--i:4">
-        <img class="card" src="/cards/back.svg" style="--i:5">
-        <img class="card" src="/cards/back.svg" style="--i:6">
+        <div class="tricks"><img class="card" src="../cards/back.svg"></div>
+        <img class="card" src="../cards/back.svg" style="--i:-5">
+        <img class="card" src="../cards/back.svg" style="--i:-4">
+        <img class="card" src="../cards/back.svg" style="--i:-3">
+        <img class="card" src="../cards/back.svg" style="--i:-2">
+        <img class="card" src="../cards/back.svg" style="--i:-1">
+        <img class="card" src="../cards/back.svg" style="--i:0">
+        <img class="card" src="../cards/back.svg" style="--i:1">
+        <img class="card" src="../cards/back.svg" style="--i:2">
+        <img class="card" src="../cards/back.svg" style="--i:3">
+        <img class="card" src="../cards/back.svg" style="--i:4">
+        <img class="card" src="../cards/back.svg" style="--i:5">
+        <img class="card" src="../cards/back.svg" style="--i:6">
         <p id="player-name">Loremsssss</p>
       </div>
       <div id="player3" class="hand">
-        <img class="card" src="/cards/back.svg" style="--i:-5">
-        <img class="card" src="/cards/back.svg" style="--i:-4">
-        <img class="card" src="/cards/back.svg" style="--i:-3">
-        <img class="card" src="/cards/back.svg" style="--i:-2">
-        <img class="card" src="/cards/back.svg" style="--i:-1">
-        <img class="card" src="/cards/back.svg" style="--i:0">
-        <img class="card" src="/cards/back.svg" style="--i:1">
-        <img class="card" src="/cards/back.svg" style="--i:2">
-        <img class="card" src="/cards/back.svg" style="--i:3">
-        <img class="card" src="/cards/back.svg" style="--i:4">
-        <img class="card" src="/cards/back.svg" style="--i:5">
-        <img class="card" src="/cards/back.svg" style="--i:6">
+        <img class="card" src="../cards/back.svg" style="--i:-5">
+        <img class="card" src="../cards/back.svg" style="--i:-4">
+        <img class="card" src="../cards/back.svg" style="--i:-3">
+        <img class="card" src="../cards/back.svg" style="--i:-2">
+        <img class="card" src="../cards/back.svg" style="--i:-1">
+        <img class="card" src="../cards/back.svg" style="--i:0">
+        <img class="card" src="../cards/back.svg" style="--i:1">
+        <img class="card" src="../cards/back.svg" style="--i:2">
+        <img class="card" src="../cards/back.svg" style="--i:3">
+        <img class="card" src="../cards/back.svg" style="--i:4">
+        <img class="card" src="../cards/back.svg" style="--i:5">
+        <img class="card" src="../cards/back.svg" style="--i:6">
         <p id="player-name">Loremsssss</p>
       </div>
       <div id="player0" class="hand">
-        <div class="tricks"><img class="card" src="/cards/back.svg"></div>
-        <img class="card" src="/cards/0-2.svg" style="--i:-5">
-        <img class="card" src="/cards/0-2.svg" style="--i:-4">
-        <img class="card" src="/cards/0-2.svg" style="--i:-3">
-        <img class="card" src="/cards/0-2.svg" style="--i:-2">
-        <img class="card" src="/cards/0-5.svg" style="--i:-1">
-        <img class="card" src="/cards/0-4.svg" style="--i:0">
-        <img class="card" src="/cards/0-3.svg" style="--i:1">
-        <img class="card" src="/cards/0-1.svg" style="--i:2">
-        <img class="card" src="/cards/0-2.svg" style="--i:3">
-        <img class="card" src="/cards/0-2.svg" style="--i:4">
-        <img class="card" src="/cards/0-3.svg" style="--i:5">
-        <img class="card" src="/cards/0-5.svg" style="--i:6">
-        <a id="announcement">Re</a>
+        <div class="tricks"></div>
+        <a id="announcement" onclick="handleAnnouncement()"></a>
+        <div class="cards">
+          <img class="card" src="../cards/back.svg"></div>
+          <img class="card" src="../cards/0-2.svg" style="--i:-5">
+          <img class="card" src="../cards/0-2.svg" style="--i:-4">
+          <img class="card" src="../cards/0-2.svg" style="--i:-3">
+          <img class="card" src="../cards/0-2.svg" style="--i:-2">
+          <img class="card" src="../cards/0-5.svg" style="--i:-1">
+          <img class="card" src="../cards/0-4.svg" style="--i:0">
+          <img class="card" src="../cards/0-3.svg" style="--i:1">
+          <img class="card" src="../cards/0-1.svg" style="--i:2">
+          <img class="card" src="../cards/0-2.svg" style="--i:3">
+          <img class="card" src="../cards/0-2.svg" style="--i:4">
+          <img class="card" src="../cards/0-3.svg" style="--i:5" onclick="placeCard(11)">
+        </div>
+        <a class="called"></a>
+        <div class="armut-give">
+          <div class="armut-cards">
+            <img src="../cards/0-2.svg">
+            <img class="armut-card" src="../cards/0-3.svg">
+            <img class="armut-card" src="../cards/0-5.svg">
+          </div>
+          <button id="armut-release-button">Give Cards</button>
+        </div>
       </div>
+
+
+
       <div id="call">
         <a>Gesund</a>
         <a>Solo</a>
@@ -90,6 +104,6 @@
     <div class="result-container">
     </div>
     <div id="errorContainer" class="error-container">Error: </div>
-    <script src="/app.js"></script>
+    <script src="../app.js"></script>
   </body>
 </html>
