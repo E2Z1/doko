@@ -44,14 +44,13 @@ nav {
 
 li {
   display: inline;
-  padding: 15px;
 }
 
 nav a {
   text-decoration: none;
   color: #353535;
   display: inline-block;
-  padding-top: 15px;
+  padding: 15px;
 }
 
 nav a:hover {
@@ -345,7 +344,7 @@ button:active {
 }
 
 .armut-give {
-  display: flex;
+  display: none;
   position: absolute;
   bottom: 33%;
   left: 50%;
@@ -368,12 +367,18 @@ button:active {
 
 .armut-cards img {
   height: 30vh;
+  cursor: pointer;
   filter: drop-shadow(2px 2px 2px #000000);
 }
 
 #armut-release-button {
   margin-top: 10px;
 }
+
+#armut-release-button.waiting {
+  background-color: #575757;
+  color: #aeaeae;
+} 
 
 .closeX {
   cursor: pointer;
