@@ -24,6 +24,7 @@ function isTrump(card,socket,ignOdl=false) {
     (!ignOdl && card[0] == 1 && card[1] == 5 && games.get(socket.game_id).users[socket.userId].special_cards.includes(2))) 
       return true; else return false;
 }
+const colorSeq = [0,5,1,2];
 
 function giveCards(users) {
     let cards = [];
@@ -54,7 +55,6 @@ function giveCards(users) {
         if (remainingCards[givenCard][0] == 3 && remainingCards[givenCard][1] == 4) party = 1;
         remainingCards.splice(givenCard, 1);
     }
-    const colorSeq = [0,5,1,2];
     cards.sort((a, b) => {
         //1: a is higher, -1: b is higher
         if (isTrump(a,null,ignOdl=true)) {
@@ -80,8 +80,6 @@ function giveCards(users) {
     
     return cards;
 }
-
-const colorSeq = [0,5,1,2];
 
 
 function getHighestCard(cards, socket) {
@@ -136,6 +134,7 @@ function censorUserData(odata, UserId) {
     user.points = -1
     user.special_cards = -1
     user.called = -1
+    user.armut_cards = []
   });
   return data;
 }
@@ -317,6 +316,7 @@ function getSpecialCards(socket) {
   pigs = 0
   superPigs = 0
   oedel = 0
+  user.special_cards = []
   user.cards.forEach((card) => {
     if (card[0] == 0 && card[1] == 2) pigs++
     else if (card[0] == 0 && card[1] == 0) superPigs++
@@ -431,15 +431,15 @@ io.on('connection', (socket) => {
     cards = giveCards(games.get(game_id).users)
 
 
-    //if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
-    //if (socket.userId == 1) cards = [[1,0],[1,0],[3,0],[0,0],[0,0],[0,2],[0,2],[2,4],[3,4],[3,4],[1,1],[1,1]]
+    if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
+    if (socket.userId == 1) cards = [[2,1],[3,1],[3,1],[2,1],[1,2],[1,2],[2,2],[2,2],[3,2],[3,2],[0,1],[0,1]]
 
     party = Number(cards.some(subArray => {
       return subArray[0] === 3 && subArray[1] === 4;
     }))
 
     
-    games.get(game_id).users.push({socketId: socket.id, userId: socket.userId, username, cards, tricks: [], party, points: [], called: 0, special_cards: [], announced: 0});
+    games.get(game_id).users.push({socketId: socket.id, userId: socket.userId, username, cards, tricks: [], party, points: [], called: 0, special_cards: [], announced: 0, armut_cards: []});
     //points: [[name, points]]
     //called:  0-nothing/start  1-gesund  2-hochzeit  3-armut  4-schmeissen  [5-?]-solo
     //special_cards 0 schweine 1 superschweine 2 oedel doedel
@@ -528,7 +528,10 @@ io.on('connection', (socket) => {
           setTimeout(() => {
             io.to(socket.game_id).emit('call', {caller: highestUser, msg: vorbehalte[highestCall], type: highestCall})
             games.get(socket.game_id).type = highestCall
-            if (highestCall == 4) games.delete(socket.game_id)
+            if (highestCall == 4) {
+              games.delete(socket.game_id)
+              return
+            }
             if (highestCall == 3) {
               if (socket.userId == 0) io.to(games.get(game_id).users[1].socketId).emit("u_call_armut")
               else io.to(games.get(socket.game_id).users[0].socketId).emit("u_call_armut")
@@ -554,24 +557,28 @@ io.on('connection', (socket) => {
       socket.emit("error", "game doesnt exist")
       return false
     }
-    
+    if (games.get(socket.game_id).type != 3) {
+      socket.emit("error", "armut was not called")
+      return false
+    }
     io.to(socket.game_id).emit('call', {caller: socket.userId, msg: ["Ablehnen", "Mitnehmen"][call], type: -1})
     if (call) {
       games.get(socket.game_id).users.forEach((user) => {
         if (user.userId == socket.userId || user.called == 3) {
           games.get(socket.game_id).users[user.userId].party = 1
           io.to(user.socketId).emit("change_party", 1)
+          io.to(user.socketId).emit("selectArmutCards", 1)
         } else {
           games.get(socket.game_id).users[user.userId].party = 0
           io.to(user.socketId).emit("change_party", 0)
         }
       })
-      io.to(socket.game_id).emit("actual_game_start")
-      io.to(socket.game_id).emit("allow_announcements")
+      //io.to(socket.game_id).emit("actual_game_start")
+      //io.to(socket.game_id).emit("allow_announcements")
       return
     } else {
       next = socket.userId+1
-      if (next >= 3 || games.get(socket.game_id).users[next].called == 3) next += 1
+      if (next <= 3 && games.get(socket.game_id).users[next].called == 3) next += 1
       if (next > 3) {
         games.get(socket.game_id).users.forEach((user) => {
           if (user.called == 3) {
@@ -580,9 +587,57 @@ io.on('connection', (socket) => {
             return
           }
         })
-      }
-      else io.to(games.get(socket.game_id).users[next].socketId).emit("u_call_armut")
+      } else io.to(games.get(socket.game_id).users[next].socketId).emit("u_call_armut")
     }
+  })
+
+  socket.on("giveArmutCards", (armutcards) => {
+    if (games.get(socket.game_id).users[socket.userId].party == 1 && games.get(socket.game_id).type == 3) {
+      games.get(socket.game_id).users[socket.userId].armut_cards = armutcards
+      games.get(socket.game_id).users.forEach((user) => {
+        if (user.userId != socket.userId && user.party == 1 && user.armut_cards.length == 3)  {
+          for(let j = 0; j < 3; j++) {
+            let tmp = user.cards[user.armut_cards[j]]
+            user.cards[user.armut_cards[j]] = games.get(socket.game_id).users[socket.userId].cards[games.get(socket.game_id).users[socket.userId].armut_cards[j]]
+            games.get(socket.game_id).users[socket.userId].cards[games.get(socket.game_id).users[socket.userId].armut_cards[j]] = tmp
+          }
+          for (let i = 0; i<2; i++) {
+            armUser = [games.get(socket.game_id).users[socket.userId], user][i]
+            armUser.cards.sort((a, b) => {
+              //1: a is higher, -1: b is higher
+              if (isTrump(a,null,ignOdl=true)) {
+              if (!isTrump(b,null,ignOdl=true)) return 1;
+              if (a[0] === 0 && !(a[1] == 3 || a[1] == 4)) { // diamond
+                  if (b[0] !== 0 || (b[1] == 3 || b[1] == 4)) return -1;
+                  if (colorSeq.indexOf(b[1]) > colorSeq.indexOf(a[1])) return -1; else return 1;
+              } else { // not diamond
+                  if (b[0] === 0 && !(b[1] == 3 || b[1] == 4)) return 1;
+                  if (b[0] === 1 && b[1] === 1) return -1;
+                  if (a[0] === 1 && a[1] === 1) return 1;
+                  if (b[1] === a[1]) {
+                  if (b[0] > a[0]) return -1; else return 1;
+                  }
+                  if (b[1] > a[1]) return -1; else return 1;
+              }
+              } else {
+              if (isTrump(b,null,ignOdl=true)) return -1;
+              if (b[0] !== a[0]) return a[0]-b[0];
+              return colorSeq.indexOf(a[1]) - colorSeq.indexOf(b[1])
+              }
+            });
+          }
+          
+          getSpecialCards(socket)
+          getSpecialCards(io.sockets.sockets.get(user.socketId))
+          socket.emit("swapArmutCards", games.get(socket.game_id).users[socket.userId].cards)
+          io.to(user.socketId).emit("swapArmutCards", user.cards)
+          games.get(socket.game_id).type = 1
+          io.to(socket.game_id).emit("actual_game_start")
+          io.to(socket.game_id).emit("allow_announcements")
+          return
+        }
+      })
+    } else socket.emit("error", "you haven't called armut")
   })
 
   socket.on("announce", () => {
