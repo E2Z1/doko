@@ -11,6 +11,7 @@ let isOdel = false;
 let curSettings;
 let highestAnnouncement = 0
 let startAnnouncementsCards = 0
+let armutCards = [ ]
 
 socket.on("error", (msg) => {
     showError(msg + " (server)")
@@ -307,14 +308,17 @@ function getPlayerElement(playerId) {
 }
 
 function renderCardsfor(userid) {
+    userCards = users[userid].cards
     if (users[userid].party != -1) {
         getCardsElement(userid).innerHTML = ''
-        userCards = users[userid].cards;
-        for (let j = 0; j<users[userid].cards.length;j++) {
-            getCardsElement(userid).innerHTML += '<img class="card" onclick="placeCard('+j+')" src="/cards/'+userCards[j][0]+'-'+userCards[j][1]+'.svg" style="--i:'+(j-(Math.ceil(Object.keys(userCards).length/2)-1))+'">'
-        }
+        let rot = 0
+        for (let j = 0; j<userCards.length;j++) {
+            if (!armutCards.includes(j)) {
+                getCardsElement(userid).innerHTML += '<img class="card" onclick="placeCard('+j+')" src="/cards/'+userCards[j][0]+'-'+userCards[j][1]+'.svg" style="--i:'+(rot-(Math.ceil((Object.keys(userCards).length-armutCards.length)/2)-1))+'">'
+                rot++
+            }
+            }
     } else {
-        userCards = users[userid].cards;
         let elem = getCardsElement(userid)
         elem.innerHTML = ''
         for (let j = 0; j<userCards;j++) {
@@ -331,10 +335,13 @@ function renderCardsforAll() {
 }
 
 function placeCard(i) {
-    if (document.querySelector(".armut-give").style.display == "block") {
+    if (document.querySelector(".armut-give").style.display == "flex" && document.querySelector(".armut-cards").childElementCount < 3) {
         document.querySelector(".armut-cards").innerHTML += '<img onclick="removeArmutCard('+document.querySelector(".armut-cards").childElementCount+')" src="/cards/'+ownCards[i][0]+'-'+ownCards[i][1]+'.svg">'
-        ownCards.splice(i,1) //renderCardsFor uses users.cards may not work
-        renderCardsfor(ownUserId)
+        armutCards.push(i)
+        //ownCards.splice(i,1) //renderCardsFor uses users.cards may not work
+        renderCardsfor(ownUserId, userCards = ownCards.filter(function(val, index) {
+            return !armutCards.includes(index)
+        }))
         return
     }
     if (isValid(i)) socket.emit('place_card', i)
@@ -342,9 +349,41 @@ function placeCard(i) {
 }
 
 function removeArmutCard(i) {
-    document.querySelector(".armut-cards").children[i].remove()
+    armutCards.splice(i, 1)
+    renderCardsfor(ownUserId, userCards = ownCards.filter(function(val, index) {
+        return !armutCards.includes(index)
+    }))
+    document.querySelector(".armut-cards").innerHTML = ""
+    armutCards.forEach((card) => {
+        document.querySelector(".armut-cards").innerHTML += '<img onclick="removeArmutCard('+document.querySelector(".armut-cards").childElementCount+')" src="/cards/'+ownCards[card][0]+'-'+ownCards[card][1]+'.svg">'
+    })
 }
 
+function giveArmutCards() {
+    if (armutCards.length == 3) {
+        socket.emit("giveArmutCards", armutCards)
+        document.getElementById("armut-release-button").classList.add("waiting")
+        document.getElementById("armut-release-button").innerText = "Waiting..."
+    } else showError("Select 3 cards")
+}
+
+socket.on("selectArmutCards", () => {
+    document.querySelector(".armut-give").style.display = "flex"
+})
+
+socket.on("swapArmutCards", (cards) => {
+    users[ownUserId].cards = cards
+    document.querySelector(".armut-give").style.display = "none"
+    armutCards = []
+    ownCards = cards
+    let numberHeartKings = 0
+    ownCards.forEach((card => {
+        if (card[0] == 1 && card[1] == 5) numberHeartKings += 1
+    }))
+    if (numberHeartKings == 2) isOdel = true
+    else isOdel = false
+    renderCardsfor(ownUserId)
+})
 
 function showError(error) {
     const errorContainer = document.getElementById("errorContainer");
