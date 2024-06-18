@@ -5,7 +5,8 @@ document.addEventListener("DOMContentLoaded", function(e) {
         superpigs: true,
         klabautermann: true,
         feigheit: true,
-        koppeldopf: true
+        koppeldopf: true,
+        soloStart: true
     }
     if (!localStorage.getItem("settings") || Object.keys(JSON.parse(localStorage.getItem("settings"))).length != Object.keys(defaultSettings).length) {
         //standard preferences by me

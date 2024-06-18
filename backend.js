@@ -184,9 +184,9 @@ function endTrick(socket) {
   }
   //klabautermann
   if (game.settings.klabautermann) {
-    queenOfSpadesIndex = trick_cards.findIndex(arr => arr[0] === 2 && arr[1] === 4);
+    let queenOfSpadesIndex = trick_cards.findIndex(arr => arr[0] === 2 && arr[1] === 4);
     if (queenOfSpadesIndex == highestCard) {
-      kingOfSpadesIndex = trick_cards.findIndex(arr => arr[0] === 2 && arr[1] === 5);
+      let kingOfSpadesIndex = trick_cards.findIndex(arr => arr[0] === 2 && arr[1] === 5);
       if (kingOfSpadesIndex != -1 && kingOfSpadesIndex < queenOfSpadesIndex) {
         io.to(socket.game_id).emit('special_point', {point_name: "Klabautermann", winner})
         addPoint(game.users[winner].points, "Klabautermann")
@@ -213,7 +213,20 @@ function endTrick(socket) {
   game.currentTrick = {}
   game.currentTrick.start = winner
   io.to(socket.game_id).emit('new_trick', games.get(socket.game_id).currentTrick)
-  if (Object.keys(game.users[0].cards).length == 0) endGame(socket);
+  if (Object.keys(game.users[0].cards).length == 0) {
+    //Karlchen
+    let KarlchenIndex = trick_cards.findIndex(arr => arr[0] === 3 && arr[1] === 3);
+    let statusKarlchen = -1;
+    if (KarlchenIndex == highestCard) statusKarlchen = 0
+    else if (game.users[(KarlchenIndex+game.currentTrick.start)%4].party != game.users[winner].party) statusKarlchen = 1
+
+    if (statusKarlchen != -1) {
+      addPoint(game.users[winner].points, ["Karlchen Müller", "Karlchen gefangen"][statusKarlchen])
+      io.to(socket.game_id).emit('special_point', {point_name: ["Karlchen Müller", "Karlchen gefangen"][statusKarlchen], winner})
+    }
+  
+    endGame(socket);
+  }
 }
 
 const announcementNames = ["Error", "", "Keine 9", "Keine 6", "Keine 3", "Schwarz"]
@@ -258,8 +271,8 @@ function endGame(socket) {
       else points[announcementNames[i]] = 1
     }
     if (results[0].eyes > announcementValues[i]) {
-      if (points[announcementNames[i]]) points[announcementNames[i]] += -1
-      else points[announcementNames[i]] = 1
+      if (points[announcementNames[i]]) points[announcementNames[i]] -= 1
+      else points[announcementNames[i]] = -1
     }
   }
   for (let j = 0; j < 2; j++) {
@@ -523,7 +536,7 @@ io.on('connection', (socket) => {
           }
         })
         if (highestCall != 1) {
-          let vorbehalte = ["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "Solo 1", "Solo 2"]
+          let vorbehalte = ["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "Karo-Solo", "Solo 2"]
           setTimeout(() => {
             io.to(socket.game_id).emit('call', {caller: highestUser, msg: vorbehalte[highestCall], type: highestCall})
             games.get(socket.game_id).type = highestCall
@@ -536,6 +549,18 @@ io.on('connection', (socket) => {
               if (socket.userId == 0) io.to(games.get(game_id).users[1].socketId).emit("u_call_armut")
               else io.to(games.get(socket.game_id).users[0].socketId).emit("u_call_armut")
               return
+            }
+            if (highestCall > 5) {
+              games.get(socket.game_id).users.forEach((user) => {
+                if (user.userId == highestUser) {
+                  games.get(socket.game_id).users[user.userId].party = 1
+                  io.to(user.socketId).emit("change_party", 1)
+                  if (games.get(socket.game_id).settings.soloStart) games.get(socket.game_id).currentTrick["start"] = highestUser
+                } else {
+                  games.get(socket.game_id).users[user.userId].party = 0
+                  io.to(user.socketId).emit("change_party", 0)
+                }
+              })
             }
             io.to(socket.game_id).emit("actual_game_start")
             if (highestCall != 2) io.to(socket.game_id).emit("allow_announcements")

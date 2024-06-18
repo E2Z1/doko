@@ -27,7 +27,8 @@ function getGameSettings() {
         superpigs: true,
         klabautermann: true,
         feigheit: true,
-        koppeldopf: true
+        koppeldopf: true,
+        soloStart: true
     }
     if (!localStorage.getItem("settings") || Object.keys(JSON.parse(localStorage.getItem("settings"))).length != Object.keys(defaultSettings).length) {
         //standard preferences by me
@@ -177,7 +178,7 @@ function handleCall(call, armut=false) {
         return
     }
     if (call == 5) {
-        document.getElementById("call").innerHTML = `<a onclick="handleCall(6)">Solo 1</a><a onclick="handleCall(7)">Solo 2</a>`
+        document.getElementById("call").innerHTML = `<a onclick="handleCall(6)">Karo-Solo</a><a onclick="handleCall(7)">Solo 2</a>`
         return
     }
     socket.emit("call", call)
@@ -298,6 +299,7 @@ socket.on('game_ended', (results) => setTimeout(() => renderResult(results), 700
 socket.on('call', (data) => {
     showCalled(data.caller, data.msg)
     if (data.type == 4) setTimeout(() => location.reload(), 1500)
+    if (data.type > 5 && curSettings.soloStart) currentTrick.start = data.caller
 })
 
 socket.on('special_point', (data) => showCalled(data.winner, data.point_name))
