@@ -271,6 +271,21 @@ socket.on('new_trick', (trick) => {
     }, 500)
 })
 
+function checkForSuperPigs() {
+    if (!curSettings.superpigs) return
+    let superPigs = 0
+    ownCards.forEach((card) => {
+        if (card[0] == 0 && card[1] == 0) superPigs++
+    })
+    if (superPigs == 2) {
+        ownCards.splice(ownCards.findIndex(arr => arr[0] == 0 && arr[1] == 0), 1)
+        ownCards.splice(ownCards.findIndex(arr => arr[0] == 0 && arr[1] == 0), 1)
+        ownCards.splice(ownCards.length, 0, [0,0])
+        ownCards.splice(ownCards.length, 0, [0,0])
+        renderCardsfor(ownUserId)
+    }
+}
+
 socket.on('game_ended', (results) => setTimeout(() => renderResult(results), 700))
 
 socket.on('call', (data) => {
@@ -283,6 +298,7 @@ socket.on('special_point', (data) => showCalled(data.winner, data.point_name))
 socket.on('special_card', (data) => {
     showCalled(data.userId, data.card)
     if (data.cardId == 2) isOdel = true;
+    if (data.cardId == 0) checkForSuperPigs();
 }) //basically the same but like this its more understandable and maybe i will ad something in the future; update: did something
 
 function showCalled(id, msg) {

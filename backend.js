@@ -271,7 +271,6 @@ function endGame(socket) {
       } else {
         if (points[announcementNames[i]+" falsch angesagt"]) points[announcementNames[i]+" falsch angesagt"] += 1-(2*j) 
         else points[announcementNames[i]+" falsch angesagt"] = 1-(2*j)
-        console.log(1-(2*j))
         wrongCalled[j] = true
       }
     }
@@ -311,11 +310,11 @@ function getColor(card, socket) {
 }
 
 function getSpecialCards(socket) {
-  game = games.get(socket.game_id)
-  user = game.users[socket.userId]
-  pigs = 0
-  superPigs = 0
-  oedel = 0
+  let game = games.get(socket.game_id)
+  let user = game.users[socket.userId]
+  let pigs = 0
+  let superPigs = 0
+  let oedel = 0
   user.special_cards = []
   user.cards.forEach((card) => {
     if (card[0] == 0 && card[1] == 2) pigs++
@@ -357,10 +356,10 @@ function getSpecialCards(socket) {
 
 
 function checkForSuperPigs(socket) {
-  game = games.get(socket.game_id)
+  let game = games.get(socket.game_id)
   if (!game.settings.superpigs) return
   game.users.forEach((user) => {
-    superPigs = 0
+    let superPigs = 0
     user.cards.forEach((card) => {
       if (card[0] == 0 && card[1] == 0) superPigs++
     })
@@ -431,8 +430,8 @@ io.on('connection', (socket) => {
     cards = giveCards(games.get(game_id).users)
 
 
-    //if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
-    //if (socket.userId == 1) cards = [[2,1],[3,1],[3,1],[2,1],[1,2],[1,2],[2,2],[2,2],[3,2],[3,2],[0,1],[0,1]]
+    if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
+    if (socket.userId == 1) cards = [[2,1],[3,1],[3,1],[2,1],[1,2],[1,2],[2,2],[2,2],[3,2],[3,2],[0,1],[0,1]]
 
     party = Number(cards.some(subArray => {
       return subArray[0] === 3 && subArray[1] === 4;
