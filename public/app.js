@@ -149,6 +149,13 @@ socket.on("announced", (data) => {
     showCalled(data.announcer, msg)
 })
 
+socket.on("someone_disconnected", (badPerson) => {
+    showCalled(badPerson, "Disconnected")
+    setTimeout(() => {
+        window.location.reload()
+    }, 5000)
+})
+
 function updateAnnouncement() {
     let lowestPossibleAnnouncement = startAnnouncementsCards - ownCards.length
     if (highestAnnouncement >= 5 || lowestPossibleAnnouncement > 5) {

@@ -236,7 +236,7 @@ function endGame(socket) {
     results[game.users[i].party].users.push(game.users[i].username)
   }
 
-  let highestAnnouncements = [0, 0]
+  let highestAnnouncements = [0, 0] //kontra re
   games.get(socket.game_id).users.forEach((user) => {
     if (user.announced > highestAnnouncements[user.party]) {
       highestAnnouncements[user.party] = user.announced
@@ -278,7 +278,7 @@ function endGame(socket) {
 
   if (results[1].eyes > 120) {
     if (highestAnnouncements[1] >= 1 && !wrongCalled[1]) results[1].points["Re"] = 2
-    if (highestAnnouncements[0] >= 1) results[1].points["Kontra falsch"] = 2        //wrongCalled is not getting called because [insert reason]
+    if (highestAnnouncements[0] >= 1) results[1].points["Kontra falsch"] = 2        //wrongCalled is not getting called because its only important for chnaging the other announcemnets but htere are no other announcements after re/kontra
   }
 
   if (results[1].eyes <= 120) {
@@ -300,6 +300,9 @@ function endGame(socket) {
 
   console.log(results);
   io.to(socket.game_id).emit('game_ended', results)
+  if(games.get(socket.userId)) games.get(socket.userId).users.forEach((user) => {
+    io.sockets.sockets[user.socketId].leave(socket.game_id)
+  })
   games.delete(socket.game_id)
 
 }
@@ -528,6 +531,9 @@ io.on('connection', (socket) => {
             io.to(socket.game_id).emit('call', {caller: highestUser, msg: vorbehalte[highestCall], type: highestCall})
             games.get(socket.game_id).type = highestCall
             if (highestCall == 4) {
+              if(games.get(socket.userId)) games.get(socket.userId).users.forEach((user) => {
+                io.sockets.sockets[user.socketId].leave(socket.game_id)
+              })
               games.delete(socket.game_id)
               return
             }
@@ -582,6 +588,9 @@ io.on('connection', (socket) => {
         games.get(socket.game_id).users.forEach((user) => {
           if (user.called == 3) {
             io.to(socket.game_id).emit('call', {caller: user.userId, msg: "Schmeißen", type: 4})
+            if(games.get(socket.userId)) games.get(socket.userId).users.forEach((user) => {
+              io.sockets.sockets[user.socketId].leave(socket.game_id)
+            })
             games.delete(socket.game_id)
             return
           }
@@ -657,7 +666,11 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     //maybe add logic for removing from game? but they cant reconnect so idk
-
+    io.to(socket.game_id).emit("someone_disconnected", socket.userId)
+    if(games.get(socket.userId)) games.get(socket.userId).users.forEach((user) => {
+      io.sockets.sockets[user.socketId].leave(socket.game_id)
+    })
+    games.delete(socket.game_id)
   });
 })
 
