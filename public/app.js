@@ -234,7 +234,7 @@ function cardPlaced(data) {
         setTimeout(() => cardPlaced(data), 100)
         return
     }
-    document.getElementById("current_trick").innerHTML += '<img class="trickCard" src="/cards/'+data.card[0].toString()+'-'+data.card[1].toString()+'.svg" style="--i:'+(4-ownUserId+data.userId)+'">'
+    document.getElementById("current_trick").innerHTML += '<img class="trickCard" src="/cards/'+data.card[0].toString()+'-'+data.card[1].toString()+'.svg" style="--i:'+(4-ownUserId+data.userId)+'" draggable="false">'
     if(Object.keys(data.currentTrick).length-1 < 4) 
         for (let i = data.currentTrick.start; i<data.currentTrick.start+users.length;i++)
             if (!data.currentTrick[i%4]) {
@@ -337,7 +337,7 @@ function renderCardsfor(userid) {
         let rot = 0
         for (let j = 0; j<userCards.length;j++) {
             if (!armutCards.includes(j)) {
-                getCardsElement(userid).innerHTML += '<img class="card" onclick="placeCard('+j+')" src="/cards/'+userCards[j][0]+'-'+userCards[j][1]+'.svg" style="--i:'+(rot-(Math.ceil((Object.keys(userCards).length-armutCards.length)/2)-1))+'">'
+                getCardsElement(userid).innerHTML += '<img class="card" onclick="placeCard('+j+')" src="/cards/'+userCards[j][0]+'-'+userCards[j][1]+'.svg" style="--i:'+(rot-(Math.ceil((Object.keys(userCards).length-armutCards.length)/2)-1))+'" draggable="false">'
                 rot++
             }
             }
@@ -345,7 +345,7 @@ function renderCardsfor(userid) {
         let elem = getCardsElement(userid)
         elem.innerHTML = ''
         for (let j = 0; j<userCards;j++) {
-            elem.innerHTML += '<img class="card" src="/cards/back.svg" style="--i:'+(j-(Math.ceil(userCards/2)-1))+'">'
+            elem.innerHTML += '<img class="card" src="/cards/back.svg" style="--i:'+(j-(Math.ceil(userCards/2)-1))+'" draggable="false">'
         }
         getPlayerElement(userid).innerHTML += `<p id="player-name" ${admins.includes(users[userid].username) ? 'class="admin"' : ''}>${users[userid].username}</p>`;
     }
@@ -359,7 +359,7 @@ function renderCardsforAll() {
 
 function placeCard(i) {
     if (document.querySelector(".armut-give").style.display == "flex" && document.querySelector(".armut-cards").childElementCount < 3) {
-        document.querySelector(".armut-cards").innerHTML += '<img onclick="removeArmutCard('+document.querySelector(".armut-cards").childElementCount+')" src="/cards/'+ownCards[i][0]+'-'+ownCards[i][1]+'.svg">'
+        document.querySelector(".armut-cards").innerHTML += '<img onclick="removeArmutCard('+document.querySelector(".armut-cards").childElementCount+')" src="/cards/'+ownCards[i][0]+'-'+ownCards[i][1]+'.svg" draggable="false">'
         armutCards.push(i)
         //ownCards.splice(i,1) //renderCardsFor uses users.cards may not work
         renderCardsfor(ownUserId, userCards = ownCards.filter(function(val, index) {
@@ -378,7 +378,7 @@ function removeArmutCard(i) {
     }))
     document.querySelector(".armut-cards").innerHTML = ""
     armutCards.forEach((card) => {
-        document.querySelector(".armut-cards").innerHTML += '<img onclick="removeArmutCard('+document.querySelector(".armut-cards").childElementCount+')" src="/cards/'+ownCards[card][0]+'-'+ownCards[card][1]+'.svg">'
+        document.querySelector(".armut-cards").innerHTML += '<img onclick="removeArmutCard('+document.querySelector(".armut-cards").childElementCount+')" src="/cards/'+ownCards[card][0]+'-'+ownCards[card][1]+'.svg" draggable="false">'
     })
 }
 
@@ -485,5 +485,5 @@ function showLastTrick() {
 function appendCardToTrick(elem) {
     const cardStack = elem.getElementsByClassName("tricks")[0];
     const cardsLength = cardStack.children.length
-    cardStack.innerHTML += '<img onclick="showLastTrick()" class="card" src="/cards/back.svg" style="transform: translate(-'+cardsLength/1.5+'px, -'+cardsLength/1.5+'px)">';
+    cardStack.innerHTML += '<img onclick="showLastTrick()" class="card" src="/cards/back.svg" style="transform: translate(-'+cardsLength/1.5+'px, -'+cardsLength/1.5+'px)" draggable="false">';
 }

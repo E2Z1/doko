@@ -300,11 +300,8 @@ function endGame(socket) {
 
   console.log(results);
   io.to(socket.game_id).emit('game_ended', results)
-  if(games.get(socket.userId)) games.get(socket.userId).users.forEach((user) => {
-    io.sockets.sockets[user.socketId].leave(socket.game_id)
-  })
+  socket.rooms.delete(socket.game_id)
   games.delete(socket.game_id)
-
 }
 
 function getColor(card, socket) {
@@ -531,9 +528,7 @@ io.on('connection', (socket) => {
             io.to(socket.game_id).emit('call', {caller: highestUser, msg: vorbehalte[highestCall], type: highestCall})
             games.get(socket.game_id).type = highestCall
             if (highestCall == 4) {
-              if(games.get(socket.userId)) games.get(socket.userId).users.forEach((user) => {
-                io.sockets.sockets[user.socketId].leave(socket.game_id)
-              })
+              socket.rooms.delete(socket.game_id)
               games.delete(socket.game_id)
               return
             }
@@ -588,9 +583,7 @@ io.on('connection', (socket) => {
         games.get(socket.game_id).users.forEach((user) => {
           if (user.called == 3) {
             io.to(socket.game_id).emit('call', {caller: user.userId, msg: "Schmeißen", type: 4})
-            if(games.get(socket.userId)) games.get(socket.userId).users.forEach((user) => {
-              io.sockets.sockets[user.socketId].leave(socket.game_id)
-            })
+            socket.rooms.delete(socket.game_id)
             games.delete(socket.game_id)
             return
           }
@@ -666,11 +659,11 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     //maybe add logic for removing from game? but they cant reconnect so idk
-    io.to(socket.game_id).emit("someone_disconnected", socket.userId)
-    if(games.get(socket.userId)) games.get(socket.userId).users.forEach((user) => {
-      io.sockets.sockets[user.socketId].leave(socket.game_id)
-    })
-    games.delete(socket.game_id)
+    if (games.get(socket.game_id)) {
+      io.to(socket.game_id).emit("someone_disconnected", socket.userId)
+      socket.rooms.delete(socket.game_id)
+      games.delete(socket.game_id)
+    }
   });
 })
 
