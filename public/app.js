@@ -12,6 +12,7 @@ let curSettings;
 let highestAnnouncement = 0
 let startAnnouncementsCards = 0
 let armutCards = [ ]
+let showCalledQueue = []
 
 socket.on("error", (msg) => {
     showError(msg + " (server)")
@@ -312,14 +313,24 @@ socket.on('special_card', (data) => {
 
 function showCalled(id, msg) {
     let elem = getPlayerElement(id).querySelector('.called')
-    elem.style.display = "none"     // so the animation starts again
-    elem.innerHTML = msg
-    elem.style.display = "block"
-    inAnimation = 1
-    setTimeout(() => {
-        elem.style.display = "none"
-        inAnimation = 0
-    }, 1500)
+    if (elem.style.display != "block") {
+        elem.style.display = "none"     // so the animation starts again
+        elem.innerHTML = msg
+        elem.style.display = "block"
+        inAnimation = 1
+        setTimeout(() => {
+            elem.style.display = "none"
+            inAnimation = 0
+            if (showCalledQueue.length != 0) {
+                setTimeout(() => {
+                    showCalled(showCalledQueue[0][0], showCalledQueue[0][1])
+                    showCalledQueue.splice(0,1)
+                }, 200)
+            }
+        }, 1500)
+    } else {
+        showCalledQueue.push([id, msg])
+    }
 }
 
 function getCardsElement(playerId) {

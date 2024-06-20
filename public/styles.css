@@ -441,7 +441,7 @@ button:active {
     transform: translate(-50%,-50%);
   }
   100% {
-    transform: translate(20%,150%);
+    transform: translate(20%,200%);
   }
 }
 

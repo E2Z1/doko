@@ -174,25 +174,38 @@ function endTrick(socket) {
   }
 
   //special points
-  //fuchs
-  foxIndex = trick_cards.findIndex(arr => arr[0] === 0 && arr[1] === 2);
-  if (foxIndex != -1 && foxIndex != highestCard && !game.special_cards.includes(0)) {
-    io.to(socket.game_id).emit('special_point', {point_name: "Fuchs", winner})
-    if (game.users[(foxIndex+game.currentTrick.start)%4].party != game.users[winner].party) {
-      addPoint(game.users[winner].points, "Fuchs gefangen")
-    }
-  }
-  //klabautermann
-  if (game.settings.klabautermann) {
-    let queenOfSpadesIndex = trick_cards.findIndex(arr => arr[0] === 2 && arr[1] === 4);
-    if (queenOfSpadesIndex == highestCard) {
-      let kingOfSpadesIndex = trick_cards.findIndex(arr => arr[0] === 2 && arr[1] === 5);
-      if (kingOfSpadesIndex != -1 && kingOfSpadesIndex < queenOfSpadesIndex) {
-        io.to(socket.game_id).emit('special_point', {point_name: "Klabautermann", winner})
-        addPoint(game.users[winner].points, "Klabautermann")
+  for (let i = 0; i < trick_cards.length; i++) {
+    //fuchs
+    if (trick_cards[i][0] == 0 && trick_cards[i][1] == 2 && i != highestCard && !game.special_cards.includes(0)) {
+      io.to(socket.game_id).emit('special_point', {point_name: "Fuchs", winner})
+      if (game.users[(i+game.currentTrick.start)%4].party != game.users[winner].party) {
+        addPoint(game.users[winner].points, "Fuchs gefangen")
       }
     }
+
+    //klabautermann
+    if (game.settings.klabautermann) {
+      if (trick_cards[i][0] == 2 && trick_cards[i][1] == 5 
+        && trick_cards[highestCard][0] == 2 && trick_cards[highestCard][1] == 4 && i < highestCard) {
+          io.to(socket.game_id).emit('special_point', {point_name: "Klabautermann", winner})
+          addPoint(game.users[winner].points, "Klabautermann")
+      }
+    }
+
+    //karlchen
+    if (Object.keys(game.users[0].cards).length == 0 && trick_cards[i][0] == 3 && trick_cards[i][1] == 3) {
+      let statusKarlchen = -1;
+      if (i == highestCard) statusKarlchen = 0
+      else if (game.users[(i+game.currentTrick.start)%4].party != game.users[winner].party) statusKarlchen = 1
+
+      if (statusKarlchen != -1) {
+        addPoint(game.users[winner].points, ["Karlchen Müller", "Karlchen gefangen"][statusKarlchen])
+        io.to(socket.game_id).emit('special_point', {point_name: ["Karlchen Müller", "Karlchen gefangen"][statusKarlchen], winner})
+      }
+    }
+
   }
+
   //doppelkopf
   cardVal = 0
   trick_cards.forEach((card) => cardVal += cardsWorth[card[1]])
@@ -208,25 +221,10 @@ function endTrick(socket) {
   
 
 
-
-
   game.currentTrick = {}
   game.currentTrick.start = winner
   io.to(socket.game_id).emit('new_trick', games.get(socket.game_id).currentTrick)
-  if (Object.keys(game.users[0].cards).length == 0) {
-    //Karlchen
-    let KarlchenIndex = trick_cards.findIndex(arr => arr[0] === 3 && arr[1] === 3);
-    let statusKarlchen = -1;
-    if (KarlchenIndex == highestCard) statusKarlchen = 0
-    else if (game.users[(KarlchenIndex+game.currentTrick.start)%4].party != game.users[winner].party) statusKarlchen = 1
-
-    if (statusKarlchen != -1) {
-      addPoint(game.users[winner].points, ["Karlchen Müller", "Karlchen gefangen"][statusKarlchen])
-      io.to(socket.game_id).emit('special_point', {point_name: ["Karlchen Müller", "Karlchen gefangen"][statusKarlchen], winner})
-    }
-  
-    endGame(socket);
-  }
+  if (Object.keys(game.users[0].cards).length == 0) endGame(socket);
 }
 
 const announcementNames = ["Error", "", "Keine 9", "Keine 6", "Keine 3", "Schwarz"]
