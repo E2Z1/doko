@@ -19,12 +19,22 @@ const games = new Map()
 
 
 function isTrump(card,socket,ignOdl=false) {
-    if (card[0] == 0 || card[1] == 3 || card[1] == 4 || (card[0] == 1 && card[1] == 1) ||
+  let gameType = 1
+  if (socket) gameType = games.get(socket.game_id).type;
+  if (gameType <= 9) {
+    if (card[1] == 3 || card[1] == 4 || (card[0] == 1 && card[1] == 1) ||
     (!ignOdl && card[0] == 1 && card[1] == 5 && games.get(socket.game_id).special_cards.includes(2)) ||
     (!ignOdl && card[0] == 1 && card[1] == 5 && games.get(socket.game_id).users[socket.userId].special_cards.includes(2))) 
-      return true; else return false;
+      return true;
+    if (gameType <= 6 && card[0] == 0) return true;
+  }
+  if (gameType == 7 && card[0] == 1) return true;
+  if (gameType == 8 && card[0] == 2) return true;
+  if (gameType == 9 && card[0] == 3) return true;
+  if (gameType == 10) return false;
+  return false;
 }
-const colorSeq = [0,5,1,2];
+const colorSeq = [0,3,4,5,1,2];
 
 function giveCards(users) {
     let cards = [];
@@ -442,7 +452,7 @@ io.on('connection', (socket) => {
 
 
     //if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
-    //if (socket.userId == 1) cards = [[2,1],[3,1],[3,1],[2,1],[1,2],[1,2],[2,2],[2,2],[3,2],[3,2],[0,1],[0,1]]
+    if (socket.userId == 1) cards = [[2,1],[3,1],[3,1],[2,1],[1,2],[1,2],[2,2],[2,2],[3,2],[3,2],[0,1],[0,1]]
 
     party = Number(cards.some(subArray => {
       return subArray[0] === 3 && subArray[1] === 4;
@@ -534,7 +544,7 @@ io.on('connection', (socket) => {
           }
         })
         if (highestCall != 1) {
-          let vorbehalte = ["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "Karo-Solo", "Solo 2"]
+          let vorbehalte = ["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "unreines Karo-Solo", "unreines Herz-Solo", "unreines Pik-Solo", "unreines Kreuz-Solo", "Fleischlos"]
           setTimeout(() => {
             io.to(socket.game_id).emit('call', {caller: highestUser, msg: vorbehalte[highestCall], type: highestCall})
             games.get(socket.game_id).type = highestCall

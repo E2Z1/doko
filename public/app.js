@@ -13,6 +13,7 @@ let highestAnnouncement = 0
 let startAnnouncementsCards = 0
 let armutCards = [ ]
 let showCalledQueue = []
+let gameType = 1;
 
 socket.on("error", (msg) => {
     showError(msg + " (server)")
@@ -88,6 +89,10 @@ document.getElementById("game_id").addEventListener('keypress', function(event) 
     if (event.key === 'Enter') joinGame()})
 
 socket.on("u_call", () => {
+    showCallMenu()
+})
+
+function showCallMenu() {
     let callElement = document.getElementById("call")
     let inner = `<a onclick="handleCall(1)">Gesund</a><a onclick="handleCall(5)">Solo</a>`
     let nines = 0;
@@ -106,7 +111,7 @@ socket.on("u_call", () => {
     if (trumps <= 3) inner += `<a onclick="handleCall(3)">Armut</a>`
     callElement.innerHTML = inner
     callElement.style.display = "block"
-})
+}
 
 socket.on("u_call_armut", () => {
     let callElement = document.getElementById("call")
@@ -179,7 +184,9 @@ function handleCall(call, armut=false) {
         return
     }
     if (call == 5) {
-        document.getElementById("call").innerHTML = `<a onclick="handleCall(6)">Karo-Solo</a><a onclick="handleCall(7)">Solo 2</a>`
+        //["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "unreines Karo-Solo", "unreines Herz-Solo", "unreines Pik-Solo", "unreines Kreuz-Solo"]
+        if (document.getElementById("call").children[0].innerText == "Gesund") document.getElementById("call").innerHTML = `<a onclick="handleCall(5)">Back</a><a onclick="handleCall(6)">unreines Karo-Solo</a><a onclick="handleCall(7)">unreines Herz-Solo</a><a onclick="handleCall(8)">unreines Pik-Solo</a><a onclick="handleCall(9)">unreines Kreuz-Solo</a><a onclick="handleCall(10)">Fleischlos</a>`
+        else showCallMenu()
         return
     }
     socket.emit("call", call)
@@ -301,6 +308,7 @@ socket.on('call', (data) => {
     showCalled(data.caller, data.msg)
     if (data.type == 4) setTimeout(() => location.reload(), 1500)
     if (data.type > 5 && curSettings.soloStart) currentTrick.start = data.caller
+    if (data.type && data.type != -1) gameType = data.type
 })
 
 socket.on('special_point', (data) => showCalled(data.winner, data.point_name))
@@ -460,11 +468,18 @@ function renderResult(result) {
     result_div.classList.add("show")
 }
 
-
-
-
 function isTrump(card) {
-    if (card[0] == 0 || card[1] == 3 || card[1] == 4 || (card[0] == 1 && card[1] == 1) || (isOdel && card[0] == 1 && card[1] == 5)) return true; else return false;
+    if (gameType <= 9) {
+      if (card[1] == 3 || card[1] == 4 || (card[0] == 1 && card[1] == 1) ||
+      (isOdel && card[0] == 1 && card[1] == 5)) 
+        return true;
+      if (gameType <= 6 && card[0] == 0) return true;
+    }
+    if (gameType == 7 && card[0] == 1) return true;
+    if (gameType == 8 && card[0] == 2) return true;
+    if (gameType == 9 && card[0] == 3) return true;
+    if (gameType == 10) return false;
+    return false;
 }
 
 function getColor(card) {
