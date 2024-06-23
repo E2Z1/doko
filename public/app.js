@@ -14,6 +14,9 @@ let startAnnouncementsCards = 0
 let armutCards = [ ]
 let showCalledQueue = []
 let gameType = 1;
+const colorSeq = [0,3,4,5,1,2];
+const secondaryTrumpColor = [0,0,0,0,0,0,0,1,2,3,-1,-1]
+
 
 socket.on("error", (msg) => {
     showError(msg + " (server)")
@@ -30,7 +33,8 @@ function getGameSettings() {
         klabautermann: true,
         feigheit: true,
         koppeldopf: true,
-        soloStart: true
+        soloStart: true,
+        pureSolo: false,
     }
     if (!localStorage.getItem("settings") || Object.keys(JSON.parse(localStorage.getItem("settings"))).length != Object.keys(defaultSettings).length) {
         //standard preferences by me
@@ -185,7 +189,12 @@ function handleCall(call, armut=false) {
     }
     if (call == 5) {
         //["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "unreines Karo-Solo", "unreines Herz-Solo", "unreines Pik-Solo", "unreines Kreuz-Solo"]
-        if (document.getElementById("call").children[0].innerText == "Gesund") document.getElementById("call").innerHTML = `<a onclick="handleCall(5)">Back</a><a onclick="handleCall(6)">unreines Karo-Solo</a><a onclick="handleCall(7)">unreines Herz-Solo</a><a onclick="handleCall(8)">unreines Pik-Solo</a><a onclick="handleCall(9)">unreines Kreuz-Solo</a><a onclick="handleCall(10)">Fleischlos</a>`
+        if (document.getElementById("call").children[0].innerText == "Gesund") {
+            document.getElementById("call").innerHTML = `<a onclick="handleCall(5)">Back</a><a onclick="handleCall(6)">unreines Karo-Solo</a>
+                <a onclick="handleCall(7)">unreines Herz-Solo</a><a onclick="handleCall(8)">unreines Pik-Solo</a><a onclick="handleCall(9)">unreines Kreuz-Solo</a><a onclick="handleCall(14)">Fleischlos</a>`
+            if (curSettings.pureSolo) document.getElementById("call").innerHTML += `<a onclick="handleCall(10)">reines Karo-Solo</a>
+                <a onclick="handleCall(11)">reines Herz-Solo</a><a onclick="handleCall(12)">reines Pik-Solo</a><a onclick="handleCall(13)">reines Kreuz-Solo</a>`
+        }
         else showCallMenu()
         return
     }
@@ -309,6 +318,31 @@ socket.on('call', (data) => {
     if (data.type == 4) setTimeout(() => location.reload(), 1500)
     if (data.type > 5 && curSettings.soloStart) currentTrick.start = data.caller
     if (data.type && data.type != -1) gameType = data.type
+    if (data.type > 6) {
+        ownCards.sort((a, b) => {
+            //1: a is higher, -1: b is higher
+            if (isTrump(a)) {
+            if (!isTrump(b)) return 1;
+            if (a[0] === secondaryTrumpColor[gameType] && !(a[1] == 3 || a[1] == 4)) { // diamond
+                if (b[0] !== 0 || (b[1] == 3 || b[1] == 4)) return -1;
+                if (colorSeq.indexOf(b[1]) > colorSeq.indexOf(a[1])) return -1; else return 1;
+            } else { // not diamond
+                if (b[0] === 0 && !(b[1] == 3 || b[1] == 4)) return 1;
+                if (b[0] === 1 && b[1] === 1) return -1;
+                if (a[0] === 1 && a[1] === 1) return 1;
+                if (b[1] === a[1]) {
+                if (b[0] > a[0]) return -1; else return 1;
+                }
+                if (b[1] > a[1]) return -1; else return 1;
+            }
+            } else {
+            if (isTrump(b)) return -1;
+            if (b[0] !== a[0]) return a[0]-b[0];
+            return colorSeq.indexOf(a[1]) - colorSeq.indexOf(b[1])
+            }
+          });
+        renderCardsfor(ownUserId)
+    }
 })
 
 socket.on('special_point', (data) => showCalled(data.winner, data.point_name))
@@ -473,12 +507,12 @@ function isTrump(card) {
       if (card[1] == 3 || card[1] == 4 || (card[0] == 1 && card[1] == 1) ||
       (isOdel && card[0] == 1 && card[1] == 5)) 
         return true;
-      if (gameType <= 6 && card[0] == 0) return true;
     }
-    if (gameType == 7 && card[0] == 1) return true;
-    if (gameType == 8 && card[0] == 2) return true;
-    if (gameType == 9 && card[0] == 3) return true;
-    if (gameType == 10) return false;
+    if ((gameType <= 6 || gameType == 10) && card[0] == 0) return true;
+    if ((gameType == 7 || gameType == 11) && card[0] == 1) return true;
+    if ((gameType == 8 || gameType == 12) && card[0] == 2) return true;
+    if ((gameType == 9 || gameType == 13) && card[0] == 3) return true;
+    if (gameType == 14) return false;
     return false;
 }
 

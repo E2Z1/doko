@@ -17,6 +17,7 @@ app.get('/', (req, res) => {
 
 const games = new Map()
 
+const secondaryTrumpColor = [0,0,0,0,0,0,0,1,2,3,-1,-1]
 
 function isTrump(card,socket,ignOdl=false) {
   let gameType = 1
@@ -26,12 +27,12 @@ function isTrump(card,socket,ignOdl=false) {
     (!ignOdl && card[0] == 1 && card[1] == 5 && games.get(socket.game_id).special_cards.includes(2)) ||
     (!ignOdl && card[0] == 1 && card[1] == 5 && games.get(socket.game_id).users[socket.userId].special_cards.includes(2))) 
       return true;
-    if (gameType <= 6 && card[0] == 0) return true;
   }
-  if (gameType == 7 && card[0] == 1) return true;
-  if (gameType == 8 && card[0] == 2) return true;
-  if (gameType == 9 && card[0] == 3) return true;
-  if (gameType == 10) return false;
+  if ((gameType <= 6 || gameType == 10) && card[0] == 0) return true;
+  if ((gameType == 7 || gameType == 11) && card[0] == 1) return true;
+  if ((gameType == 8 || gameType == 12) && card[0] == 2) return true;
+  if ((gameType == 9 || gameType == 13) && card[0] == 3) return true;
+  if (gameType == 14) return false;
   return false;
 }
 const colorSeq = [0,3,4,5,1,2];
@@ -95,13 +96,14 @@ function giveCards(users) {
 function getHighestCard(cards, socket) {
   let highestCardIndex = 0;
   let highestCard = cards[0];
+  let curTrumpColor = secondaryTrumpColor[games.get(socket.game_id).type]
   for (let i = 1; i < cards.length; i++) {
     const card = cards[i];
     if (isTrump(highestCard,socket)) { // trump
       if (!isTrump(card,socket)) continue;
-
-      if (highestCard[0] === 0 && !(highestCard[1] == 3 || highestCard[1] == 4) && !(highestCard[0] === 0 && highestCard[1] === 2 && games.get(socket.game_id).special_cards.includes(0)) && !(highestCard[0] === 0 && highestCard[1] === 0 && games.get(socket.game_id).special_cards.includes(1))) { // diamond
-        if (!(card[0] === 0 && !(card[1] == 3 || card[1] == 4))) { highestCard = card; highestCardIndex = i; continue; }
+      
+      if (highestCard[0] === curTrumpColor && !(highestCard[1] == 3 || highestCard[1] == 4) && !(highestCard[0] === 0 && highestCard[1] === 2 && games.get(socket.game_id).special_cards.includes(0)) && !(highestCard[0] === 0 && highestCard[1] === 0 && games.get(socket.game_id).special_cards.includes(1))) { // diamond
+        if (!(card[0] === curTrumpColor && !(card[1] == 3 || card[1] == 4))) { highestCard = card; highestCardIndex = i; continue; }
         if (colorSeq.indexOf(card[1]) > colorSeq.indexOf(highestCard[1])) { highestCard = card; highestCardIndex = i; }
       } else { // not diamond
         if (highestCard[0] === 0 && highestCard[1] === 0 && games.get(socket.game_id).special_cards.includes(1)) continue;
@@ -119,7 +121,7 @@ function getHighestCard(cards, socket) {
         if (highestCard[0] === 1 && highestCard[1] === 1) continue;
         if (card[0] == 1 && card[1] == 5) { highestCard = card; highestCardIndex = i; continue; }
         if (highestCard[0] == 1 && highestCard[1] == 5) continue;
-        if (card[0] === 0 && !(card[1] == 3 || card[1] == 4)) continue;
+        if (card[0] === curTrumpColor && !(card[1] == 3 || card[1] == 4)) continue;
         if (card[1] > highestCard[1]) { highestCard = card; highestCardIndex = i; continue; }
         if (card[1] === highestCard[1] && card[0] > highestCard[0]) { highestCard = card; highestCardIndex = i; }
       }
@@ -182,51 +184,52 @@ function endTrick(socket) {
       games.get(socket.game_id).startAnnouncementsCards = games.get(socket.game_id).users[0].cards.length
     }
   }
-
-  //special points
-  for (let i = 0; i < trick_cards.length; i++) {
-    //fuchs
-    if (trick_cards[i][0] == 0 && trick_cards[i][1] == 2 && i != highestCard && !game.special_cards.includes(0)) {
-      io.to(socket.game_id).emit('special_point', {point_name: "Fuchs", winner})
-      if (game.users[(i+game.currentTrick.start)%4].party != game.users[winner].party) {
-        addPoint(game.users[winner].points, "Fuchs gefangen")
+  if (game.type < 5) {
+    //special points
+    for (let i = 0; i < trick_cards.length; i++) {
+      //fuchs
+      if (trick_cards[i][0] == 0 && trick_cards[i][1] == 2 && i != highestCard && !game.special_cards.includes(0)) {
+        io.to(socket.game_id).emit('special_point', {point_name: "Fuchs", winner})
+        if (game.users[(i+game.currentTrick.start)%4].party != game.users[winner].party) {
+          addPoint(game.users[winner].points, "Fuchs gefangen")
+        }
       }
+
+      //klabautermann
+      if (game.settings.klabautermann) {
+        if (trick_cards[i][0] == 2 && trick_cards[i][1] == 5 
+          && trick_cards[highestCard][0] == 2 && trick_cards[highestCard][1] == 4 && i < highestCard) {
+            io.to(socket.game_id).emit('special_point', {point_name: "Klabautermann", winner})
+            addPoint(game.users[winner].points, "Klabautermann")
+        }
+      }
+
+      //karlchen
+      if (Object.keys(game.users[0].cards).length == 0 && trick_cards[i][0] == 3 && trick_cards[i][1] == 3) {
+        let statusKarlchen = -1;
+        if (i == highestCard) statusKarlchen = 0
+        else if (game.users[(i+game.currentTrick.start)%4].party != game.users[winner].party) statusKarlchen = 1
+
+        if (statusKarlchen != -1) {
+          addPoint(game.users[winner].points, ["Karlchen Müller", "Karlchen gefangen"][statusKarlchen])
+          io.to(socket.game_id).emit('special_point', {point_name: ["Karlchen Müller", "Karlchen gefangen"][statusKarlchen], winner})
+        }
+      }
+
     }
 
-    //klabautermann
-    if (game.settings.klabautermann) {
-      if (trick_cards[i][0] == 2 && trick_cards[i][1] == 5 
-        && trick_cards[highestCard][0] == 2 && trick_cards[highestCard][1] == 4 && i < highestCard) {
-          io.to(socket.game_id).emit('special_point', {point_name: "Klabautermann", winner})
-          addPoint(game.users[winner].points, "Klabautermann")
-      }
+    //doppelkopf
+    cardVal = 0
+    trick_cards.forEach((card) => cardVal += cardsWorth[card[1]])
+    if (cardVal >= 40) {
+      io.to(socket.game_id).emit('special_point', {point_name: "Doppelkopf", winner})
+      addPoint(game.users[winner].points, "Doppelkopf")
     }
-
-    //karlchen
-    if (Object.keys(game.users[0].cards).length == 0 && trick_cards[i][0] == 3 && trick_cards[i][1] == 3) {
-      let statusKarlchen = -1;
-      if (i == highestCard) statusKarlchen = 0
-      else if (game.users[(i+game.currentTrick.start)%4].party != game.users[winner].party) statusKarlchen = 1
-
-      if (statusKarlchen != -1) {
-        addPoint(game.users[winner].points, ["Karlchen Müller", "Karlchen gefangen"][statusKarlchen])
-        io.to(socket.game_id).emit('special_point', {point_name: ["Karlchen Müller", "Karlchen gefangen"][statusKarlchen], winner})
-      }
+    //koppeldopf
+    if (game.settings.koppeldopf && cardVal == 0) {
+      io.to(socket.game_id).emit('special_point', {point_name: "Koppeldopf", winner})
+      addPoint(game.users[winner].points, "Koppeldopf")
     }
-
-  }
-
-  //doppelkopf
-  cardVal = 0
-  trick_cards.forEach((card) => cardVal += cardsWorth[card[1]])
-  if (cardVal >= 40) {
-    io.to(socket.game_id).emit('special_point', {point_name: "Doppelkopf", winner})
-    addPoint(game.users[winner].points, "Doppelkopf")
-  }
-  //koppeldopf
-  if (game.settings.koppeldopf && cardVal == 0) {
-    io.to(socket.game_id).emit('special_point', {point_name: "Koppeldopf", winner})
-    addPoint(game.users[winner].points, "Koppeldopf")
   }
   
 
@@ -452,7 +455,7 @@ io.on('connection', (socket) => {
 
 
     //if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
-    if (socket.userId == 1) cards = [[2,1],[3,1],[3,1],[2,1],[1,2],[1,2],[2,2],[2,2],[3,2],[3,2],[0,1],[0,1]]
+    //if (socket.userId == 1) cards = [[2,1],[3,1],[3,1],[2,1],[1,2],[1,2],[2,2],[2,2],[3,2],[3,2],[0,1],[0,1]]
 
     party = Number(cards.some(subArray => {
       return subArray[0] === 3 && subArray[1] === 4;
@@ -529,6 +532,7 @@ io.on('connection', (socket) => {
       if (call == 2 && queensOfClubs != 2) legal = false;
       if (call == 4 && !(nines >= 5 || kings >= 5 || (nines == 4 && kings == 4))) legal = false;
       if (call == 3 && trumps > 3) legal = false;
+      if (call >= 10 && call <= 13 && !games.get(socket.game_id).settings.pureSolo) legal = false;
       if (legal) io.to(socket.game_id).emit('call', {caller: socket.userId, msg: "Vorbehalt"})
     }
     if (legal) {
@@ -544,7 +548,8 @@ io.on('connection', (socket) => {
           }
         })
         if (highestCall != 1) {
-          let vorbehalte = ["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "unreines Karo-Solo", "unreines Herz-Solo", "unreines Pik-Solo", "unreines Kreuz-Solo", "Fleischlos"]
+          let vorbehalte = ["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "unreines Karo-Solo", "unreines Herz-Solo", "unreines Pik-Solo", "unreines Kreuz-Solo",
+            "reines Karo-Solo", "reines Herz-Solo", "reines Pik-Solo", "reines Kreuz-Solo", "Fleischlos"]
           setTimeout(() => {
             io.to(socket.game_id).emit('call', {caller: highestUser, msg: vorbehalte[highestCall], type: highestCall})
             games.get(socket.game_id).type = highestCall
@@ -567,6 +572,30 @@ io.on('connection', (socket) => {
                 } else {
                   games.get(socket.game_id).users[user.userId].party = 0
                   io.to(user.socketId).emit("change_party", 0)
+                }
+                for (let i = 0; i<2; i++) {
+                  user.cards.sort((a, b) => {
+                    //1: a is higher, -1: b is higher
+                    if (isTrump(a,socket,ignOdl=true)) {
+                    if (!isTrump(b,socket,ignOdl=true)) return 1;
+                    if (a[0] === secondaryTrumpColor[games.get(socket.game_id).type] && !(a[1] == 3 || a[1] == 4)) { // diamond
+                        if (b[0] !== 0 || (b[1] == 3 || b[1] == 4)) return -1;
+                        if (colorSeq.indexOf(b[1]) > colorSeq.indexOf(a[1])) return -1; else return 1;
+                    } else { // not diamond
+                        if (b[0] === 0 && !(b[1] == 3 || b[1] == 4)) return 1;
+                        if (b[0] === 1 && b[1] === 1) return -1;
+                        if (a[0] === 1 && a[1] === 1) return 1;
+                        if (b[1] === a[1]) {
+                        if (b[0] > a[0]) return -1; else return 1;
+                        }
+                        if (b[1] > a[1]) return -1; else return 1;
+                    }
+                    } else {
+                    if (isTrump(b,socket,ignOdl=true)) return -1;
+                    if (b[0] !== a[0]) return a[0]-b[0];
+                    return colorSeq.indexOf(a[1]) - colorSeq.indexOf(b[1])
+                    }
+                  });
                 }
               })
             }
