@@ -12,10 +12,11 @@ let curSettings;
 let highestAnnouncement = 0
 let startAnnouncementsCards = 0
 let armutCards = [ ]
-let showCalledQueue = []
+let showCalledQueue = [[],[],[],[]] //for each user one list
 let gameType = 1;
 const colorSeq = [0,3,4,5,1,2];
 const secondaryTrumpColor = [0,0,0,0,0,0,0,1,2,3,-1,-1]
+let refreshInterval = setInterval(() => socket.emit('getPublicGames'), 5000);
 
 
 socket.on("error", (msg) => {
@@ -82,6 +83,7 @@ socket.on("init", (data) => {
         document.getElementById(setting[0]).checked = setting[1]
     })
     document.getElementById("showSettings").style.display = "block"
+    clearInterval(refreshInterval)
 })
 lastTrick = document.getElementsByClassName("lastTrick")[0]
 document.addEventListener("mousemove", function(e) {
@@ -191,7 +193,8 @@ function handleCall(call, armut=false) {
         //["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "unreines Karo-Solo", "unreines Herz-Solo", "unreines Pik-Solo", "unreines Kreuz-Solo"]
         if (document.getElementById("call").children[0].innerText == "Gesund") {
             document.getElementById("call").innerHTML = `<a onclick="handleCall(5)">Back</a><a onclick="handleCall(6)">unreines Karo-Solo</a>
-                <a onclick="handleCall(7)">unreines Herz-Solo</a><a onclick="handleCall(8)">unreines Pik-Solo</a><a onclick="handleCall(9)">unreines Kreuz-Solo</a><a onclick="handleCall(14)">Fleischlos</a>`
+                <a onclick="handleCall(7)">unreines Herz-Solo</a><a onclick="handleCall(8)">unreines Pik-Solo</a><a onclick="handleCall(9)">unreines Kreuz-Solo</a><a onclick="handleCall(14)">Fleischlos</a>
+                <a onclick="handleCall(15)">Buben-Solo</a><a onclick="handleCall(16)">Damen-Solo</a>`
             if (curSettings.pureSolo) document.getElementById("call").innerHTML += `<a onclick="handleCall(10)">reines Karo-Solo</a>
                 <a onclick="handleCall(11)">reines Herz-Solo</a><a onclick="handleCall(12)">reines Pik-Solo</a><a onclick="handleCall(13)">reines Kreuz-Solo</a>`
         }
@@ -363,15 +366,15 @@ function showCalled(id, msg) {
         setTimeout(() => {
             elem.style.display = "none"
             inAnimation = 0
-            if (showCalledQueue.length != 0) {
+            if (showCalledQueue[id].length != 0) {
                 setTimeout(() => {
-                    showCalled(showCalledQueue[0][0], showCalledQueue[0][1])
-                    showCalledQueue.splice(0,1)
+                    showCalled(id, showCalledQueue[id][0])
+                    showCalledQueue[id].splice(0,1)
                 }, 200)
             }
         }, 1500)
     } else {
-        showCalledQueue.push([id, msg])
+        showCalledQueue[id].push(msg)
     }
 }
 
@@ -480,11 +483,19 @@ function renderResult(result) {
 
     let reScore = 0;
     const scoreRows = Object.entries(result[1].points).map(([key, value]) => {
-        reScore += value;
-        return `<tr><th>${key}</th><td>${value}</td><td>${-value}</td></tr>`;
+        if (key == "Solo") {
+            return `<tr><th>${key}</th><td><b>*3</b></td><td></td></tr>`;
+        }
+        if (key == "Feigheit") { //both only have symbolic(?) value
+            reScore *= -1
+            return `<tr><th>${key}</th><td><b>*(-1)</b></td><td><b>*(-1)</b></td></tr>`;
+        } else {
+            reScore += value;
+            return `<tr><th>${key}</th><td>${value}</td><td>${-value}</td></tr>`;
+        }
     });
 
-    const totalReScore = `<tr><th>Summe</th><td>${reScore}</td><td>${-reScore}</td></tr>`;
+    const totalScore = `<tr><th>Summe</th><td><b>${result[1].users.length == 1 ? reScore*3 : reScore}</b></td><td><b>${-reScore}</b></td></tr>`;
 
     const scoreTable = `
         <table>
@@ -493,7 +504,7 @@ function renderResult(result) {
           <tr><th>Augen</th><td>${result[1].eyes}</td><td>${240-result[1].eyes}</td></tr>
           ${scoreRows.join('')}
           <tr></tr>
-          ${totalReScore}
+          ${totalScore}
         </table>
         <a class="closeX" href=".">X</a>`;
 

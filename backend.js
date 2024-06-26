@@ -312,7 +312,7 @@ function endGame(socket) {
   if (wrongCalled[0]) results[1].points["Kontra falsch"] = 2
   if (wrongCalled[1]) results[1].points["Re falsch"] = -2
 
-  for (let i = 0; i < playerCount; i++) { //after main points
+  for (let i = 0; i < playerCount; i++) { //additional points after main points
     for (let j = 0; j < game.users[i].points.length; j++) {
       if (results[1].points[game.users[i].points[j][0]])
         results[1].points[game.users[i].points[j][0]] += (game.users[i].party ? 1 : -1) * game.users[i].points[j][1]
@@ -321,6 +321,18 @@ function endGame(socket) {
     }
   }
 
+  if (results[1].users.length == 1) { //solo
+    results[1].points["Solo"] = 1 //symbolic value actual value calculated by client
+  }
+
+  if (game.settings.feigheit) { //feigheit
+    if (results[0].eyes > announcementValues[highestAnnouncements[0] + 3 > announcementValues.length-1 ? 0 : highestAnnouncements[0] + 3 ]) {
+      results[1].points["Feigheit"] = 1 //symbolic value actual value calculated by client
+    }
+    if (results[1].eyes > announcementValues[highestAnnouncements[1] + 3 > announcementValues.length-1 ? 0 : highestAnnouncements[1] + 3 ]) {
+      results[1].points["Feigheit"] = -1 //symbolic value actual value calculated by client
+    }
+  }
 
   console.log(results);
   io.to(socket.game_id).emit('game_ended', results)
