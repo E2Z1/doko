@@ -7,7 +7,8 @@ document.addEventListener("DOMContentLoaded", function(e) {
         feigheit: true,
         koppeldopf: true,
         soloStart: true,
-        pureSolo: false
+        pureSolo: false,
+        shiftSpecialCardsSolo: false
     }
     if (!localStorage.getItem("settings") || Object.keys(JSON.parse(localStorage.getItem("settings"))).length != Object.keys(defaultSettings).length) {
         //standard preferences by me

@@ -7,11 +7,11 @@ let currentTrick;
 const admins = ["ez", "E2Z1"]
 let inAnimation = 0 //not a nice solution but im really not motivated rn, might change it later
 let removeAnimationTimer;
-let isOdel = false;
+let existsOdel = false;
 let curSettings;
 let highestAnnouncement = 0
 let startAnnouncementsCards = 0
-let armutCards = [ ]
+let armutCards = []
 let showCalledQueue = [[],[],[],[]] //for each user one list
 let gameType = 1;
 const colorSeq = [0,3,4,5,1,2];
@@ -36,6 +36,7 @@ function getGameSettings() {
         koppeldopf: true,
         soloStart: true,
         pureSolo: false,
+        shiftSpecialCardsSolo: false,
     }
     if (!localStorage.getItem("settings") || Object.keys(JSON.parse(localStorage.getItem("settings"))).length != Object.keys(defaultSettings).length) {
         //standard preferences by me
@@ -76,7 +77,7 @@ socket.on("init", (data) => {
     ownCards.forEach((card => {
         if (card[0] == 1 && card[1] == 5) numberHeartKings += 1
     }))
-    if (numberHeartKings == 2) isOdel = true
+    if (numberHeartKings == 2) existsOdel = true
     startGame(data)
     currentTrick = data.currentTrick
     Object.entries(curSettings).forEach((setting) => {
@@ -299,17 +300,80 @@ socket.on('new_trick', (trick) => {
     }, 500)
 })
 
+function getPigCard() {
+    if (gameType >= 10) return [-1, -1] //reine soli haben keine schweine
+    if (!curSettings.shiftSpecialCardsSolo || gameType <= 6) return [0,2]
+    return [gameType-6, 2]
+}
+
+function getOdelCard() {
+    if (gameType >= 10) return [-1, -1] //reine soli haben keine oedel doedel
+    if (!curSettings.shiftSpecialCardsSolo || gameType <= 6) return [1,5]
+    return [(gameType-5)%4, 5]
+}
+
+function getSuperPigCard() {
+    if (gameType >= 10) return [-1, -1] //reine soli haben keine super schweine
+    if (!curSettings.shiftSpecialCardsSolo || gameType <= 6) return [0,0]
+    return [gameType-6, 0]
+}
+
+function equals2D(arr1, arr2) {
+    return arr1[0] == arr2[0] && arr1[1] == arr2[1]
+}
+
+function getSpecialCards() {
+    let pigs = 0
+    let superPigs = 0
+    let oedel = 0
+    ownCards.forEach((card) => {
+        if (equals2D(card, getPigCard())) pigs++
+        else if (equals2D(card, getSuperPigCard())) superPigs++
+        else if (equals2D(card, getOdelCard())) oedel++
+    })
+    if (oedel == 2 && curSettings.odel) {
+        ownCards.splice(ownCards.findIndex(arr => equals2D(arr, getOdelCard())), 1)
+        ownCards.splice(ownCards.findIndex(arr => equals2D(arr, getOdelCard())), 1)
+        if (gameType < 10) { //heart 10s dont exist in pure soli
+        let h10Index = ownCards.findIndex(arr => arr[0] == 1 && arr[1] == 1)
+        if (h10Index == -1) {
+            ownCards.splice(ownCards.length, 0, getOdelCard())
+            ownCards.splice(ownCards.length, 0, getOdelCard())
+        } else if (ownCards.slice(h10Index+1).findIndex(arr => arr[0] == 1 && arr[1] == 1) == -1) {
+            ownCards.splice(ownCards.length-1, 0, getOdelCard())
+            ownCards.splice(ownCards.length-1, 0, getOdelCard())
+        } else {
+            ownCards.splice(ownCards.length-2, 0, getOdelCard())
+            ownCards.splice(ownCards.length-2, 0, getOdelCard())
+        }
+        }
+    }
+
+    if (pigs == 2) {
+        ownCards.splice(ownCards.findIndex(arr => equals2D(arr, getPigCard())), 1)
+        ownCards.splice(ownCards.findIndex(arr => equals2D(arr, getPigCard())), 1)
+        ownCards.splice(ownCards.length, 0, getPigCard())
+        ownCards.splice(ownCards.length, 0, getPigCard())
+    }
+    if (superPigs == 2 && pigs == 2 && curSettings.superpigs) {
+        ownCards.splice(ownCards.findIndex(arr => equals2D(arr, getSuperPigCard())), 1)
+        ownCards.splice(ownCards.findIndex(arr => equals2D(arr, getSuperPigCard())), 1)
+        ownCards.splice(ownCards.length, 0, getSuperPigCard())
+        ownCards.splice(ownCards.length, 0, getSuperPigCard())
+    }
+}
+
 function checkForSuperPigs() {
     if (!curSettings.superpigs) return
     let superPigs = 0
     ownCards.forEach((card) => {
-        if (card[0] == 0 && card[1] == 0) superPigs++
+        if (equals2D(card, getSuperPigCard())) superPigs++
     })
     if (superPigs == 2) {
-        ownCards.splice(ownCards.findIndex(arr => arr[0] == 0 && arr[1] == 0), 1)
-        ownCards.splice(ownCards.findIndex(arr => arr[0] == 0 && arr[1] == 0), 1)
-        ownCards.splice(ownCards.length, 0, [0,0])
-        ownCards.splice(ownCards.length, 0, [0,0])
+        ownCards.splice(ownCards.findIndex(arr => equals2D(arr, getSuperPigCard())), 1)
+        ownCards.splice(ownCards.findIndex(arr => equals2D(arr, getSuperPigCard())), 1)
+        ownCards.splice(ownCards.length, 0, getSuperPigCard())
+        ownCards.splice(ownCards.length, 0, getSuperPigCard())
         renderCardsfor(ownUserId)
     }
 }
@@ -344,6 +408,7 @@ socket.on('call', (data) => {
             return colorSeq.indexOf(a[1]) - colorSeq.indexOf(b[1])
             }
           });
+        getSpecialCards()
         renderCardsfor(ownUserId)
     }
 })
@@ -352,7 +417,7 @@ socket.on('special_point', (data) => showCalled(data.winner, data.point_name))
 
 socket.on('special_card', (data) => {
     showCalled(data.userId, data.card)
-    if (data.cardId == 2) isOdel = true;
+    if (data.cardId == 2) existsOdel = true;
     if (data.cardId == 0) checkForSuperPigs();
 }) //basically the same but like this its more understandable and maybe i will ad something in the future; update: did something
 
@@ -459,10 +524,10 @@ socket.on("swapArmutCards", (cards) => {
     ownCards = cards
     let numberHeartKings = 0
     ownCards.forEach((card => {
-        if (card[0] == 1 && card[1] == 5) numberHeartKings += 1
+        if (card[0] == 1 && card[1] == 5) numberHeartKings += 1  //can stay bc armut has o soli
     }))
-    if (numberHeartKings == 2) isOdel = true
-    else isOdel = false
+    if (numberHeartKings == 2) existsOdel = true
+    else existsOdel = false
     renderCardsfor(ownUserId)
 })
 
@@ -516,7 +581,7 @@ function renderResult(result) {
 function isTrump(card) {
     if (gameType <= 9) {
       if (card[1] == 3 || card[1] == 4 || (card[0] == 1 && card[1] == 1) ||
-      (isOdel && card[0] == 1 && card[1] == 5)) 
+      (existsOdel && equals2D(card, getOdelCard))) 
         return true;
     }
     if ((gameType <= 6 || gameType == 10) && card[0] == 0) return true;

@@ -24,8 +24,8 @@ function isTrump(card,socket,ignOdl=false) {
   if (socket) gameType = games.get(socket.game_id).type;
   if (gameType <= 9) {
     if (card[1] == 3 || card[1] == 4 || (card[0] == 1 && card[1] == 1) ||
-    (!ignOdl && card[0] == 1 && card[1] == 5 && games.get(socket.game_id).special_cards.includes(2)) ||
-    (!ignOdl && card[0] == 1 && card[1] == 5 && games.get(socket.game_id).users[socket.userId].special_cards.includes(2))) 
+    (!ignOdl && equals2D(card, getOdelCard(socket)) && games.get(socket.game_id).special_cards.includes(2)) ||
+    (!ignOdl && equals2D(card, getOdelCard(socket)) && games.get(socket.game_id).users[socket.userId].special_cards.includes(2))) 
       return true;
   }
   if ((gameType <= 6 || gameType == 10) && card[0] == 0) return true;
@@ -102,14 +102,14 @@ function getHighestCard(cards, socket) {
     if (isTrump(highestCard,socket)) { // trump
       if (!isTrump(card,socket)) continue;
       
-      if (highestCard[0] === curTrumpColor && !(highestCard[1] == 3 || highestCard[1] == 4) && !(highestCard[0] === 0 && highestCard[1] === 2 && games.get(socket.game_id).special_cards.includes(0)) && !(highestCard[0] === 0 && highestCard[1] === 0 && games.get(socket.game_id).special_cards.includes(1))) { // diamond
+      if (highestCard[0] === curTrumpColor && !(highestCard[1] == 3 || highestCard[1] == 4) && !(equals2D(highestCard, getPigCard(socket)) && games.get(socket.game_id).special_cards.includes(0)) && !(equals2D(highestCard, getSuperPigCard(socket)) && games.get(socket.game_id).special_cards.includes(1))) { // diamond
         if (!(card[0] === curTrumpColor && !(card[1] == 3 || card[1] == 4))) { highestCard = card; highestCardIndex = i; continue; }
         if (colorSeq.indexOf(card[1]) > colorSeq.indexOf(highestCard[1])) { highestCard = card; highestCardIndex = i; }
       } else { // not diamond
-        if (highestCard[0] === 0 && highestCard[1] === 0 && games.get(socket.game_id).special_cards.includes(1)) continue;
-        if (card[0] === 0 && card[1] === 0 && games.get(socket.game_id).special_cards.includes(1)) { highestCard = card; highestCardIndex = i; continue; }
-        if (highestCard[0] === 0 && highestCard[1] === 2 && games.get(socket.game_id).special_cards.includes(0)) continue;
-        if (card[0] === 0 && card[1] === 2 && games.get(socket.game_id).special_cards.includes(0)) { highestCard = card; highestCardIndex = i; continue; }
+        if (equals2D(highestCard, getSuperPigCard(socket)) && games.get(socket.game_id).special_cards.includes(1)) continue;
+        if (equals2D(card, getSuperPigCard(socket)) && games.get(socket.game_id).special_cards.includes(1)) { highestCard = card; highestCardIndex = i; continue; }
+        if (equals2D(highestCard, getPigCard(socket)) && games.get(socket.game_id).special_cards.includes(0)) continue;
+        if (equals2D(card, getPigCard(socket)) && games.get(socket.game_id).special_cards.includes(0)) { highestCard = card; highestCardIndex = i; continue; }
 
         if (card[0] === 1 && card[1] === 1) {
           if (!(highestCard[0] === 1 && highestCard[1] === 1 && games.get(socket.game_id).special_cards.includes(0))) {
@@ -179,7 +179,7 @@ function endTrick(socket) {
         }
       })
     } else {
-      game.type = 5 // basically karo solo
+      game.type = 6 // basically karo solo
       io.to(socket.game_id).emit("allow_announcements")
       games.get(socket.game_id).startAnnouncementsCards = games.get(socket.game_id).users[0].cards.length
     }
@@ -345,6 +345,31 @@ function getColor(card, socket) {
   return card[0]
 }
 
+function getPigCard(socket) {
+  let game = games.get(socket.game_id)
+  if (game.type >= 10) return [-1, -1] //reine soli haben keine schweine
+  if (!game.settings.shiftSpecialCardsSolo || game.type <= 6) return [0,2]
+  return [game.type-6, 2]
+}
+
+function getOdelCard(socket) {
+  let game = games.get(socket.game_id)
+  if (game.type >= 10) return [-1, -1] //reine soli haben keine oedel doedel
+  if (!game.settings.shiftSpecialCardsSolo || game.type <= 6) return [1,5]
+  return [(game.type-5)%4, 5]
+}
+
+function getSuperPigCard(socket) {
+  let game = games.get(socket.game_id)
+  if (game.type >= 10) return [-1, -1] //reine soli haben keine super schweine
+  if (!game.settings.shiftSpecialCardsSolo || game.type <= 6) return [0,0]
+  return [game.type-6, 0]
+}
+
+function equals2D(arr1, arr2) {
+  return arr1[0] == arr2[0] && arr1[1] == arr2[1]
+}
+
 function getSpecialCards(socket) {
   let game = games.get(socket.game_id)
   let user = game.users[socket.userId]
@@ -353,40 +378,42 @@ function getSpecialCards(socket) {
   let oedel = 0
   user.special_cards = []
   user.cards.forEach((card) => {
-    if (card[0] == 0 && card[1] == 2) pigs++
-    else if (card[0] == 0 && card[1] == 0) superPigs++
-    else if (card[0] == 1 && card[1] == 5) oedel++
+    if (equals2D(card, getPigCard(socket))) pigs++
+    else if (equals2D(card, getSuperPigCard(socket))) superPigs++
+    else if (equals2D(card, getOdelCard(socket))) oedel++
   })
   if (oedel == 2 && game.settings.odel) {
     user.special_cards.push(2)
-    user.cards.splice(user.cards.findIndex(arr => arr[0] == 1 && arr[1] == 5), 1)
-    user.cards.splice(user.cards.findIndex(arr => arr[0] == 1 && arr[1] == 5), 1)
-    h10Index = user.cards.findIndex(arr => arr[0] == 1 && arr[1] == 1)
-    if (h10Index == -1) {
-      user.cards.splice(user.cards.length, 0, [1,5])
-      user.cards.splice(user.cards.length, 0, [1,5])
-    } else if (user.cards.slice(h10Index+1).findIndex(arr => arr[0] == 1 && arr[1] == 1) == -1) {
-      user.cards.splice(user.cards.length-1, 0, [1,5])
-      user.cards.splice(user.cards.length-1, 0, [1,5])
-    } else {
-      user.cards.splice(user.cards.length-2, 0, [1,5])
-      user.cards.splice(user.cards.length-2, 0, [1,5])
+    user.cards.splice(user.cards.findIndex(arr => equals2D(arr, getOdelCard(socket))), 1)
+    user.cards.splice(user.cards.findIndex(arr => equals2D(arr, getOdelCard(socket))), 1)
+    if (game.type < 10) { //heart 10s dont exist in pure soli
+      h10Index = user.cards.findIndex(arr => arr[0] == 1 && arr[1] == 1)
+      if (h10Index == -1) {
+        user.cards.splice(user.cards.length, 0, getOdelCard(socket))
+        user.cards.splice(user.cards.length, 0, getOdelCard(socket))
+      } else if (user.cards.slice(h10Index+1).findIndex(arr => arr[0] == 1 && arr[1] == 1) == -1) {
+        user.cards.splice(user.cards.length-1, 0, getOdelCard(socket))
+        user.cards.splice(user.cards.length-1, 0, getOdelCard(socket))
+      } else {
+        user.cards.splice(user.cards.length-2, 0, getOdelCard(socket))
+        user.cards.splice(user.cards.length-2, 0, getOdelCard(socket))
+      }
     }
   }
 
   if (pigs == 2) {
     user.special_cards.push(0)
-    user.cards.splice(user.cards.findIndex(arr => arr[0] == 0 && arr[1] == 2), 1)
-    user.cards.splice(user.cards.findIndex(arr => arr[0] == 0 && arr[1] == 2), 1)
-    user.cards.splice(user.cards.length, 0, [0,2])
-    user.cards.splice(user.cards.length, 0, [0,2])
+    user.cards.splice(user.cards.findIndex(arr => equals2D(arr, getPigCard(socket))), 1)
+    user.cards.splice(user.cards.findIndex(arr => equals2D(arr, getPigCard(socket))), 1)
+    user.cards.splice(user.cards.length, 0, getPigCard(socket))
+    user.cards.splice(user.cards.length, 0, getPigCard(socket))
   }
   if (superPigs == 2 && pigs == 2 && game.settings.superpigs) {
 //    user.special_cards.push(1) they arent super pigs yet bc pigs were not laid
-    user.cards.splice(user.cards.findIndex(arr => arr[0] == 0 && arr[1] == 0), 1)
-    user.cards.splice(user.cards.findIndex(arr => arr[0] == 0 && arr[1] == 0), 1)
-    user.cards.splice(user.cards.length, 0, [0,0])
-    user.cards.splice(user.cards.length, 0, [0,0])
+    user.cards.splice(user.cards.findIndex(arr => equals2D(arr, getSuperPigCard(socket))), 1)
+    user.cards.splice(user.cards.findIndex(arr => equals2D(arr, getSuperPigCard(socket))), 1)
+    user.cards.splice(user.cards.length, 0, getSuperPigCard(socket))
+    user.cards.splice(user.cards.length, 0, getSuperPigCard(socket))
   }
 }
 
@@ -397,14 +424,14 @@ function checkForSuperPigs(socket) {
   game.users.forEach((user) => {
     let superPigs = 0
     user.cards.forEach((card) => {
-      if (card[0] == 0 && card[1] == 0) superPigs++
+      if (equals2D(card, getSuperPigCard(socket))) superPigs++
     })
     if (superPigs == 2 && game.special_cards.includes(0)) {
       user.special_cards.push(1)
-      user.cards.splice(user.cards.findIndex(arr => arr[0] == 0 && arr[1] == 0), 1)
-      user.cards.splice(user.cards.findIndex(arr => arr[0] == 0 && arr[1] == 0), 1)
-      user.cards.splice(user.cards.length, 0, [0,0])
-      user.cards.splice(user.cards.length, 0, [0,0])
+      user.cards.splice(user.cards.findIndex(arr => equals2D(arr, getSuperPigCard(socket))), 1)
+      user.cards.splice(user.cards.findIndex(arr => equals2D(arr, getSuperPigCard(socket))), 1)
+      user.cards.splice(user.cards.length, 0, getSuperPigCard(socket))
+      user.cards.splice(user.cards.length, 0, getSuperPigCard(socket))
     }
   })
 }
@@ -440,9 +467,6 @@ function isValid(cardId, socket) {
 io.on('connection', (socket) => {
 
   socket.emit('public_games', getPublicGames())
-
-  //console.log('a user connected')
-
 
   socket.on('getPublicGames', () => socket.emit('public_games', getPublicGames()))
 
@@ -496,20 +520,20 @@ io.on('connection', (socket) => {
       game = games.get(socket.game_id)
       game.currentTrick[socket.userId] = game.users[socket.userId].cards[card]
       io.to(socket.game_id).emit('placed_card', { userId: socket.userId, card: game.users[socket.userId].cards[card], currentTrick: game.currentTrick});
-      cardValue = game.users[socket.userId].cards[card]
+      let cardValue = game.users[socket.userId].cards[card]
       //check if special card
-      if (cardValue[0] == 0 && cardValue[1] == 2) {
+      if (equals2D(cardValue, getPigCard(socket))) {
         if (game.users[socket.userId].special_cards.includes(0)) {
           game.special_cards.push(0)
           io.to(socket.game_id).emit('special_card', {userId: socket.userId, card: "Schwein", cardId: 0})
           checkForSuperPigs(socket)
         }
-      } else if (cardValue[0] == 0 && cardValue[1] == 0) {
+      } else if (equals2D(cardValue, getSuperPigCard(socket))) {
         if (game.users[socket.userId].special_cards.includes(1)) {
           game.special_cards.push(1)
           io.to(socket.game_id).emit('special_card', {userId: socket.userId, card: "Super-Schwein", cardId: 1})
         }
-      } else if (cardValue[0] == 1 && cardValue[1] == 5) {
+      } else if (equals2D(cardValue, getOdelCard(socket))) {
         if (game.users[socket.userId].special_cards.includes(2)) {
           game.special_cards.push(2)
           io.to(socket.game_id).emit('special_card', {userId: socket.userId, card: "Ödel Dödel", cardId: 2})
@@ -589,26 +613,27 @@ io.on('connection', (socket) => {
                   user.cards.sort((a, b) => {
                     //1: a is higher, -1: b is higher
                     if (isTrump(a,socket,ignOdl=true)) {
-                    if (!isTrump(b,socket,ignOdl=true)) return 1;
-                    if (a[0] === secondaryTrumpColor[games.get(socket.game_id).type] && !(a[1] == 3 || a[1] == 4)) { // diamond
-                        if (b[0] !== 0 || (b[1] == 3 || b[1] == 4)) return -1;
-                        if (colorSeq.indexOf(b[1]) > colorSeq.indexOf(a[1])) return -1; else return 1;
-                    } else { // not diamond
-                        if (b[0] === 0 && !(b[1] == 3 || b[1] == 4)) return 1;
-                        if (b[0] === 1 && b[1] === 1) return -1;
-                        if (a[0] === 1 && a[1] === 1) return 1;
-                        if (b[1] === a[1]) {
-                        if (b[0] > a[0]) return -1; else return 1;
-                        }
-                        if (b[1] > a[1]) return -1; else return 1;
-                    }
+                      if (!isTrump(b,socket,ignOdl=true)) return 1;
+                      if (a[0] === secondaryTrumpColor[games.get(socket.game_id).type] && !(a[1] == 3 || a[1] == 4)) { // diamond
+                          if (b[0] !== 0 || (b[1] == 3 || b[1] == 4)) return -1;
+                          if (colorSeq.indexOf(b[1]) > colorSeq.indexOf(a[1])) return -1; else return 1;
+                      } else { // not diamond
+                          if (b[0] === 0 && !(b[1] == 3 || b[1] == 4)) return 1;
+                          if (b[0] === 1 && b[1] === 1) return -1;
+                          if (a[0] === 1 && a[1] === 1) return 1;
+                          if (b[1] === a[1]) {
+                            if (b[0] > a[0]) return -1; else return 1;
+                          }
+                          if (b[1] > a[1]) return -1; else return 1;
+                      }
                     } else {
-                    if (isTrump(b,socket,ignOdl=true)) return -1;
-                    if (b[0] !== a[0]) return a[0]-b[0];
-                    return colorSeq.indexOf(a[1]) - colorSeq.indexOf(b[1])
+                      if (isTrump(b,socket,ignOdl=true)) return -1;
+                      if (b[0] !== a[0]) return a[0]-b[0];
+                      return colorSeq.indexOf(a[1]) - colorSeq.indexOf(b[1])
                     }
                   });
                 }
+                getSpecialCards(io.sockets.sockets.get(user.socketId))
               })
             }
             io.to(socket.game_id).emit("actual_game_start")
@@ -702,7 +727,6 @@ io.on('connection', (socket) => {
             });
           }
           
-          getSpecialCards(socket)
           getSpecialCards(io.sockets.sockets.get(user.socketId))
           socket.emit("swapArmutCards", games.get(socket.game_id).users[socket.userId].cards)
           io.to(user.socketId).emit("swapArmutCards", user.cards)
