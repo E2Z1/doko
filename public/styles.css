@@ -121,6 +121,10 @@ main p {
   overflow: hidden;
   padding: 5px;
   display: none;
+  overflow: hidden;
+  height: auto;
+  max-height: 15em;
+  transition: max-height 0.5s ease;
 }
 
 #showSettings h4 {

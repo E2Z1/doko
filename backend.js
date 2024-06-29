@@ -25,7 +25,13 @@ function isTrump(card,socket,ignOdl=false) {
   if (gameType <= 9) {
     if (card[1] == 3 || card[1] == 4 || (card[0] == 1 && card[1] == 1) ||
     (!ignOdl && equals2D(card, getOdelCard(socket)) && games.get(socket.game_id).special_cards.includes(2)) ||
-    (!ignOdl && equals2D(card, getOdelCard(socket)) && games.get(socket.game_id).users[socket.userId].special_cards.includes(2))) 
+    (!ignOdl && equals2D(card, getOdelCard(socket)) && games.get(socket.game_id).users[socket.userId].special_cards.includes(2))||
+
+    (!ignOdl && equals2D(card, getPigCard(socket)) && games.get(socket.game_id).special_cards.includes(0)) ||
+    (!ignOdl && equals2D(card, getPigCard(socket)) && games.get(socket.game_id).users[socket.userId].special_cards.includes(0))||
+
+    (!ignOdl && equals2D(card, getSuperPigCard(socket)) && games.get(socket.game_id).special_cards.includes(1)) ||
+    (!ignOdl && equals2D(card, getSuperPigCard(socket)) && games.get(socket.game_id).users[socket.userId].special_cards.includes(1))) 
       return true;
   }
   if ((gameType <= 6 || gameType == 10) && card[0] == 0) return true;
@@ -447,10 +453,10 @@ function getPublicGames() {
 
 function isValid(cardId, socket) {
   const curGame = games.get(socket.game_id)
-  if (Object.keys(curGame.users).length != 4 || curGame.type == -1) return false;
-  if (!(curGame.currentTrick[(socket.userId+3)%4] || curGame.currentTrick.start == socket.userId)) return false;
-  if (curGame.currentTrick[socket.userId]) return false;
-  if (!curGame.users[socket.userId].cards[cardId]) return false;
+  if (Object.keys(curGame.users).length != 4 || curGame.type == -1) return false;         //not started yet
+  if (!(curGame.currentTrick[(socket.userId+3)%4] || curGame.currentTrick.start == socket.userId)) return false;    //their turn
+  if (curGame.currentTrick[socket.userId]) return false;      //already laid card
+  if (!curGame.users[socket.userId].cards[cardId]) return false;  //card doesnt exist
 
   //actual rules
   if (curGame.currentTrick.start == socket.userId) return true //the first player can do whatever they want

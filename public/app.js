@@ -7,7 +7,7 @@ let currentTrick;
 const admins = ["ez", "E2Z1"]
 let inAnimation = 0 //not a nice solution but im really not motivated rn, might change it later
 let removeAnimationTimer;
-let existsOdel = false;
+let special_cards = [];
 let curSettings;
 let highestAnnouncement = 0
 let startAnnouncementsCards = 0
@@ -73,17 +73,26 @@ socket.on("init", (data) => {
     ownUserId = data.users.length-1
     ownCards = data.users[ownUserId].cards
     curSettings = data.settings;
-    let numberHeartKings = 0
-    ownCards.forEach((card => {
-        if (card[0] == 1 && card[1] == 5) numberHeartKings += 1
-    }))
-    if (numberHeartKings == 2) existsOdel = true
+    let oedel = 0
+    let pigs = 0
+    let superPigs = 0
+    ownCards.forEach((card) => {
+        if (equals2D(card, getPigCard())) pigs++
+        else if (equals2D(card, getSuperPigCard())) superPigs++
+        else if (equals2D(card, getOdelCard())) oedel++
+    })
+    if (oedel == 2 && curSettings.odel) special_cards.push(2)
+    if (superPigs == 2 && curSettings.superpigs) special_cards.push(1)
+    if (pigs == 2) special_cards.push(0)
     startGame(data)
     currentTrick = data.currentTrick
     Object.entries(curSettings).forEach((setting) => {
         document.getElementById(setting[0]).checked = setting[1]
     })
     document.getElementById("showSettings").style.display = "block"
+    setTimeout(() => {
+        document.getElementById("showSettings").style.maxHeight = "1.9em"
+    }, 1000)
     clearInterval(refreshInterval)
 })
 lastTrick = document.getElementsByClassName("lastTrick")[0]
@@ -378,6 +387,15 @@ function checkForSuperPigs() {
     }
 }
 
+function showSettingsFlip() {
+    let showSettings = document.getElementById("showSettings");
+    if (showSettings.style.maxHeight === "1.9em") {
+      showSettings.style.maxHeight = "15em";
+    } else {
+      showSettings.style.maxHeight = "1.9em";
+    }
+  }
+
 socket.on('game_ended', (results) => setTimeout(() => renderResult(results), 700))
 
 socket.on('call', (data) => {
@@ -417,7 +435,7 @@ socket.on('special_point', (data) => showCalled(data.winner, data.point_name))
 
 socket.on('special_card', (data) => {
     showCalled(data.userId, data.card)
-    if (data.cardId == 2) existsOdel = true;
+    special_cards.push(data.cardId)
     if (data.cardId == 0) checkForSuperPigs();
 }) //basically the same but like this its more understandable and maybe i will ad something in the future; update: did something
 
@@ -522,12 +540,18 @@ socket.on("swapArmutCards", (cards) => {
     document.querySelector(".armut-give").style.display = "none"
     armutCards = []
     ownCards = cards
-    let numberHeartKings = 0
-    ownCards.forEach((card => {
-        if (card[0] == 1 && card[1] == 5) numberHeartKings += 1  //can stay bc armut has o soli
-    }))
-    if (numberHeartKings == 2) existsOdel = true
-    else existsOdel = false
+    let oedel = 0
+    let pigs = 0
+    let superPigs = 0
+    ownCards.forEach((card) => {
+        if (equals2D(card, getPigCard())) pigs++
+        else if (equals2D(card, getSuperPigCard())) superPigs++
+        else if (equals2D(card, getOdelCard())) oedel++
+    })
+    special_cards = []
+    if (oedel == 2 && curSettings.odel) special_cards.push(2)
+    if (superPigs == 2 && curSettings.superpigs) special_cards.push(1)
+    if (pigs == 2) special_cards.push(0)
     renderCardsfor(ownUserId)
 })
 
@@ -581,7 +605,9 @@ function renderResult(result) {
 function isTrump(card) {
     if (gameType <= 9) {
       if (card[1] == 3 || card[1] == 4 || (card[0] == 1 && card[1] == 1) ||
-      (existsOdel && equals2D(card, getOdelCard))) 
+      (special_cards.includes(2) && equals2D(card, getOdelCard())) ||
+      (special_cards.includes(0) && equals2D(card, getPigCard())) ||
+      (special_cards.includes(1) && equals2D(card, getSuperPigCard()))) 
         return true;
     }
     if ((gameType <= 6 || gameType == 10) && card[0] == 0) return true;
