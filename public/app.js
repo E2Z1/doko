@@ -39,6 +39,8 @@ function getGameSettings() {
         pureSolo: false,
         shiftSpecialCardsSolo: false,
         manyFulls: true,
+        pureKingNineSolo: true,
+        kingNineSolo: false,
     }
     if (!localStorage.getItem("settings") || Object.keys(JSON.parse(localStorage.getItem("settings"))).length != Object.keys(defaultSettings).length) {
         //standard preferences by me
@@ -394,7 +396,7 @@ function checkForSuperPigs() {
 function showSettingsFlip() {
     let showSettings = document.getElementById("showSettings");
     if (showSettings.style.maxHeight === "1.9em") {
-      showSettings.style.maxHeight = "15em";
+      showSettings.style.maxHeight = "25em";
     } else {
       showSettings.style.maxHeight = "1.9em";
     }

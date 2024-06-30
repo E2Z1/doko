@@ -766,11 +766,12 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     //maybe add logic for removing from game? but they cant reconnect so idk
-    if (games.get(socket.game_id)) {
+    /*if (games.get(socket.game_id)) {
       io.to(socket.game_id).emit("someone_disconnected", socket.userId)
       socket.rooms.delete(socket.game_id)
       games.delete(socket.game_id)
     }
+      was too buggy */
   });
 })
 

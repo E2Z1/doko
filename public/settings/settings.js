@@ -10,6 +10,8 @@ document.addEventListener("DOMContentLoaded", function(e) {
         pureSolo: false,
         shiftSpecialCardsSolo: false,
         manyFulls: true,
+        pureKingNineSolo: true,
+        kingNineSolo: false,
     }
     if (!localStorage.getItem("settings") || Object.keys(JSON.parse(localStorage.getItem("settings"))).length != Object.keys(defaultSettings).length) {
         //standard preferences by me

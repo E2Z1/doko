@@ -123,7 +123,7 @@ main p {
   display: none;
   overflow: hidden;
   height: auto;
-  max-height: 15em;
+  max-height: 25em;
   transition: max-height 0.5s ease;
 }
 
@@ -286,6 +286,7 @@ button:active {
   position: fixed;
   bottom: 25%;
   left: 50%;
+  z-index: 2;
 }
 
 .card {
@@ -299,6 +300,7 @@ button:active {
   position: fixed;
   bottom: 72%;
   left: 45%;
+  z-index: 1;
 }
 
 .trickCard {
@@ -339,7 +341,11 @@ button:active {
 }
 
 .their-turn#player0 .card {
-  height: 70vh;
+  height: 50vh;
+}
+
+.their-turn#player0 {
+  bottom: 33%;
 }
 
 .tricks .card {
@@ -406,9 +412,10 @@ button:active {
   text-align: center;
   overflow-y: scroll;
   display: none;
-  z-index: 1; /* over showSettings */
+  z-index: 3;
   max-height: 95%;
 }
+
 #call a {
   cursor: pointer;
   font-size: 30px;
@@ -493,4 +500,9 @@ button:active {
   margin-right: 80px;
   margin-bottom: 50px;
   margin-top: 0px;
+}
+
+
+@media screen and (max-width:320px) {
+  
 }
