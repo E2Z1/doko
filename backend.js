@@ -497,6 +497,7 @@ io.on('connection', (socket) => {
 
 
     //if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
+    if (socket.userId == 0) cards = [[1,2],[1,2],[0,1],[0,1],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
     //if (socket.userId == 1) cards = [[2,1],[3,1],[3,1],[2,1],[1,2],[1,2],[2,2],[2,2],[3,2],[3,2],[0,1],[0,1]]
 
     party = Number(cards.some(subArray => {
@@ -565,14 +566,16 @@ io.on('connection', (socket) => {
       let kings = 0;
       let queensOfClubs = 0;
       let trumps = 0;
+      let cardValue = 0;
       games.get(socket.game_id).users[socket.userId].cards.forEach((card) => {
           if (card[1] == 0) nines++;
           if (card[1] == 5) kings++;
           if (card[0] == 3 && card[1] == 4) queensOfClubs++;
           if (isTrump(card, socket)) trumps++;
+          cardValue += cardsWorth[card[1]]
       })
       if (call == 2 && queensOfClubs != 2) legal = false;
-      if (call == 4 && !(nines >= 5 || kings >= 5 || (nines == 4 && kings == 4))) legal = false;
+      if (call == 4 && !(nines >= 5 || kings >= 5 || (nines == 4 && kings == 4) || (games.get(socket.game_id).settings.manyFulls && cardValue >= 80))) legal = false;
       if (call == 3 && trumps > 3) legal = false;
       if (call >= 10 && call <= 13 && !games.get(socket.game_id).settings.pureSolo) legal = false;
       if (legal) io.to(socket.game_id).emit('call', {caller: socket.userId, msg: "Vorbehalt"})

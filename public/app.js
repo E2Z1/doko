@@ -17,6 +17,7 @@ let gameType = 1;
 const colorSeq = [0,3,4,5,1,2];
 const secondaryTrumpColor = [0,0,0,0,0,0,0,1,2,3,-1,-1]
 let refreshInterval = setInterval(() => socket.emit('getPublicGames'), 5000);
+const cardsWorth = [0,10,11,2,3,4]
 
 
 socket.on("error", (msg) => {
@@ -37,6 +38,7 @@ function getGameSettings() {
         soloStart: true,
         pureSolo: false,
         shiftSpecialCardsSolo: false,
+        manyFulls: true,
     }
     if (!localStorage.getItem("settings") || Object.keys(JSON.parse(localStorage.getItem("settings"))).length != Object.keys(defaultSettings).length) {
         //standard preferences by me
@@ -115,15 +117,17 @@ function showCallMenu() {
     let kings = 0;
     let queensOfClubs = 0;
     let trumps = 0;
+    let cardValue = 0;
     ownCards.forEach((card) => {
         if (card[1] == 0) nines++;
         if (card[1] == 5) kings++;
         if (card[0] == 3 && card[1] == 4) queensOfClubs++;
         if (isTrump(card)) trumps++;
+        cardValue += cardsWorth[card[1]]
     })
 
     if (queensOfClubs == 2) inner += `<a onclick="handleCall(2)">Hochzeit</a>`
-    if (nines >= 5 || kings >= 5 || (nines == 4 && kings == 4)) inner += `<a onclick="handleCall(4)">Schmeißen</a>`
+    if (nines >= 5 || kings >= 5 || (nines == 4 && kings == 4) || (cardValue >= 80 && curSettings.manyFulls)) inner += `<a onclick="handleCall(4)">Schmeißen</a>`
     if (trumps <= 3) inner += `<a onclick="handleCall(3)">Armut</a>`
     callElement.innerHTML = inner
     callElement.style.display = "block"

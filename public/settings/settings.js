@@ -8,7 +8,8 @@ document.addEventListener("DOMContentLoaded", function(e) {
         koppeldopf: true,
         soloStart: true,
         pureSolo: false,
-        shiftSpecialCardsSolo: false
+        shiftSpecialCardsSolo: false,
+        manyFulls: true,
     }
     if (!localStorage.getItem("settings") || Object.keys(JSON.parse(localStorage.getItem("settings"))).length != Object.keys(defaultSettings).length) {
         //standard preferences by me
