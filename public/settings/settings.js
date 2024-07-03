@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", function(e) {
         manyFulls: true,
         pureKingNineSolo: true,
         kingNineSolo: false,
+        lossSolo: false,
     }
     if (!localStorage.getItem("settings") || Object.keys(JSON.parse(localStorage.getItem("settings"))).length != Object.keys(defaultSettings).length) {
         //standard preferences by me

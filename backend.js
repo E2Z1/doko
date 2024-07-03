@@ -17,12 +17,13 @@ app.get('/', (req, res) => {
 
 const games = new Map()
 
-const secondaryTrumpColor = [0,0,0,0,0,0,0,1,2,3,-1,-1]
+const secondaryTrumpColor = [0,0,0,0,0,0,0,1,2,3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0]
 
 function isTrump(card,socket,ignOdl=false) {
   let gameType = 1
   if (socket) gameType = games.get(socket.game_id).type;
-  if (gameType <= 9) {
+
+  if (gameType <= 11 || gameType == 21) { //standard + unrein + verlust
     if (card[1] == 3 || card[1] == 4 || (card[0] == 1 && card[1] == 1) ||
     (!ignOdl && equals2D(card, getOdelCard(socket)) && games.get(socket.game_id).special_cards.includes(2)) ||
     (!ignOdl && equals2D(card, getOdelCard(socket)) && games.get(socket.game_id).users[socket.userId].special_cards.includes(2))||
@@ -34,11 +35,20 @@ function isTrump(card,socket,ignOdl=false) {
     (!ignOdl && equals2D(card, getSuperPigCard(socket)) && games.get(socket.game_id).users[socket.userId].special_cards.includes(1))) 
       return true;
   }
+
+  //farbsoli
   if ((gameType <= 6 || gameType == 10) && card[0] == 0) return true;
   if ((gameType == 7 || gameType == 11) && card[0] == 1) return true;
   if ((gameType == 8 || gameType == 12) && card[0] == 2) return true;
   if ((gameType == 9 || gameType == 13) && card[0] == 3) return true;
-  if (gameType == 14) return false;
+
+  if ((gameType == 10 || gameType == 16) && card[1] == 0) return true;//neunersoli
+  if ((gameType == 11 || gameType == 17) && card[1] == 5) return true;//koenigssoli
+
+  if ((gameType == 18) && card[1] == 3) return true;//bubensoli
+  if ((gameType == 19) && card[1] == 4) return true;//damensoli
+
+  if (gameType == 20) return false; //fleischlos
   return false;
 }
 const colorSeq = [0,3,4,5,1,2];
@@ -102,7 +112,8 @@ function giveCards(users) {
 function getHighestCard(cards, socket) {
   let highestCardIndex = 0;
   let highestCard = cards[0];
-  let curTrumpColor = secondaryTrumpColor[games.get(socket.game_id).type]
+  let gameType = games.get(socket.game_id).type
+  let curTrumpColor = secondaryTrumpColor[gameType]
   for (let i = 1; i < cards.length; i++) {
     const card = cards[i];
     if (isTrump(highestCard,socket)) { // trump
@@ -125,6 +136,11 @@ function getHighestCard(cards, socket) {
           }
         }
         if (highestCard[0] === 1 && highestCard[1] === 1) continue;
+
+        if (gameType == 10 && card[1] == 0) { highestCard = card; highestCardIndex = i; continue; }
+        if (gameType == 10 && highestCard[1] == 0) continue;
+        if (gameType == 11 && card[1] == 5) { highestCard = card; highestCardIndex = i; continue; }
+        if (gameType == 11 && highestCard[1] == 5) continue;
         if (card[0] == 1 && card[1] == 5) { highestCard = card; highestCardIndex = i; continue; }
         if (highestCard[0] == 1 && highestCard[1] == 5) continue;
         if (card[0] === curTrumpColor && !(card[1] == 3 || card[1] == 4)) continue;
@@ -185,7 +201,7 @@ function endTrick(socket) {
         }
       })
     } else {
-      game.type = 6 // basically karo solo
+      game.type = 1 // wird nicht karo solo weil es sonderpunkte gibt
       io.to(socket.game_id).emit("allow_announcements")
       games.get(socket.game_id).startAnnouncementsCards = games.get(socket.game_id).users[0].cards.length
     }
@@ -331,13 +347,16 @@ function endGame(socket) {
     results[1].points["Solo"] = 1 //symbolic value actual value calculated by client
   }
 
-  if (game.settings.feigheit) { //feigheit
+  if (game.settings.feigheit && game.type != 21) { //feigheit
     if (results[0].eyes > announcementValues[highestAnnouncements[0] + 3 > announcementValues.length-1 ? 0 : highestAnnouncements[0] + 3 ]) {
       results[1].points["Feigheit"] = 1 //symbolic value actual value calculated by client
     }
     if (results[1].eyes > announcementValues[highestAnnouncements[1] + 3 > announcementValues.length-1 ? 0 : highestAnnouncements[1] + 3 ]) {
       results[1].points["Feigheit"] = -1 //symbolic value actual value calculated by client
     }
+  }
+  if (game.type == 21 && results[1].eyes == 0) { //Verlusts-Solo
+    results[1].points["Verlusts-Solo"] = 1 //symbolic value actual value calculated by client
   }
 
   console.log(results);
@@ -353,22 +372,25 @@ function getColor(card, socket) {
 
 function getPigCard(socket) {
   let game = games.get(socket.game_id)
-  if (game.type >= 10) return [-1, -1] //reine soli haben keine schweine
+  if (game.type >= 12) return [-1, -1] //reine soli haben keine schweine
   if (!game.settings.shiftSpecialCardsSolo || game.type <= 6) return [0,2]
+  if (game.settings.shiftSpecialCardsSolo && game.type >= 10) return [-1,-1]
   return [game.type-6, 2]
 }
 
 function getOdelCard(socket) {
   let game = games.get(socket.game_id)
-  if (game.type >= 10) return [-1, -1] //reine soli haben keine oedel doedel
+  if (game.type >= 12) return [-1, -1] //reine soli haben keine oedel doedel
   if (!game.settings.shiftSpecialCardsSolo || game.type <= 6) return [1,5]
+  if (game.settings.shiftSpecialCardsSolo && game.type >= 10) return [-1,-1]
   return [(game.type-5)%4, 5]
 }
 
 function getSuperPigCard(socket) {
   let game = games.get(socket.game_id)
-  if (game.type >= 10) return [-1, -1] //reine soli haben keine super schweine
+  if (game.type >= 12) return [-1, -1] //reine soli haben keine super schweine
   if (!game.settings.shiftSpecialCardsSolo || game.type <= 6) return [0,0]
+  if (game.settings.shiftSpecialCardsSolo && game.type >= 10) return [-1,-1]
   return [game.type-6, 0]
 }
 
@@ -392,7 +414,7 @@ function getSpecialCards(socket) {
     user.special_cards.push(2)
     user.cards.splice(user.cards.findIndex(arr => equals2D(arr, getOdelCard(socket))), 1)
     user.cards.splice(user.cards.findIndex(arr => equals2D(arr, getOdelCard(socket))), 1)
-    if (game.type < 10) { //heart 10s dont exist in pure soli
+    if (game.type < 12) { //heart 10s dont exist in pure soli
       h10Index = user.cards.findIndex(arr => arr[0] == 1 && arr[1] == 1)
       if (h10Index == -1) {
         user.cards.splice(user.cards.length, 0, getOdelCard(socket))
@@ -593,8 +615,10 @@ io.on('connection', (socket) => {
           }
         })
         if (highestCall != 1) {
-          let vorbehalte = ["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "unreines Karo-Solo", "unreines Herz-Solo", "unreines Pik-Solo", "unreines Kreuz-Solo",
-            "reines Karo-Solo", "reines Herz-Solo", "reines Pik-Solo", "reines Kreuz-Solo", "Fleischlos"]
+          //let vorbehalte = ["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "unreines Karo-Solo", "unreines Herz-Solo", "unreines Pik-Solo", "unreines Kreuz-Solo",
+          //(old)  "reines Karo-Solo", "reines Herz-Solo", "reines Pik-Solo", "reines Kreuz-Solo", "Fleischlos"]
+          let vorbehalte = ["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "unreines Karo-Solo", "unreines Herz-Solo", "unreines Pik-Solo", "unreines Kreuz-Solo", "unreines Neunen-Solo", "unreines Königs-Solo",
+            "reines Karo-Solo", "reines Herz-Solo", "reines Pik-Solo", "reines Kreuz-Solo", "reines Neunen-Solo", "reines Königs-Solo", "Buben-Solo", "Damen-Solo", "Fleischlos", "Verlust-Solo"]
           setTimeout(() => {
             io.to(socket.game_id).emit('call', {caller: highestUser, msg: vorbehalte[highestCall], type: highestCall})
             games.get(socket.game_id).type = highestCall
@@ -618,7 +642,7 @@ io.on('connection', (socket) => {
                   games.get(socket.game_id).users[user.userId].party = 0
                   io.to(user.socketId).emit("change_party", 0)
                 }
-                for (let i = 0; i<2; i++) {
+                for (let i = 0; i<2; i++) {  //why am i sorting twice?  i dont know anymore future/past me please explain
                   user.cards.sort((a, b) => {
                     //1: a is higher, -1: b is higher
                     if (isTrump(a,socket,ignOdl=true)) {
@@ -633,6 +657,10 @@ io.on('connection', (socket) => {
                           if (b[1] === a[1]) {
                             if (b[0] > a[0]) return -1; else return 1;
                           }
+                          if (highestCall == 10 && a[1] === 0) return 1; else return -1;
+                          if (highestCall == 10 && b[1] === 0) return -1; else return 1;
+                          if (highestCall == 11 && a[1] === 5) return 1; else return -1;
+                          if (highestCall == 11 && b[1] === 5) return -1; else return 1;
                           if (b[1] > a[1]) return -1; else return 1;
                       }
                     } else {

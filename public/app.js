@@ -15,7 +15,7 @@ let armutCards = []
 let showCalledQueue = [[],[],[],[]] //for each user one list
 let gameType = 1;
 const colorSeq = [0,3,4,5,1,2];
-const secondaryTrumpColor = [0,0,0,0,0,0,0,1,2,3,-1,-1]
+const secondaryTrumpColor = [0,0,0,0,0,0,0,1,2,3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0]
 let refreshInterval = setInterval(() => socket.emit('getPublicGames'), 5000);
 const cardsWorth = [0,10,11,2,3,4]
 
@@ -41,6 +41,7 @@ function getGameSettings() {
         manyFulls: true,
         pureKingNineSolo: true,
         kingNineSolo: false,
+        lossSolo: false,
     }
     if (!localStorage.getItem("settings") || Object.keys(JSON.parse(localStorage.getItem("settings"))).length != Object.keys(defaultSettings).length) {
         //standard preferences by me
@@ -209,12 +210,14 @@ function handleCall(call, armut=false) {
         //["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "unreines Karo-Solo", "unreines Herz-Solo", "unreines Pik-Solo", "unreines Kreuz-Solo"]
         if (document.getElementById("call").children[0].innerText == "Gesund") {
             document.getElementById("call").innerHTML = `<a onclick="handleCall(5)">Back</a><a onclick="handleCall(6)">unreines Karo-Solo</a>
-                <a onclick="handleCall(7)">unreines Herz-Solo</a><a onclick="handleCall(8)">unreines Pik-Solo</a><a onclick="handleCall(9)">unreines Kreuz-Solo</a><a onclick="handleCall(14)">Fleischlos</a>
-                <a onclick="handleCall(15)">Buben-Solo</a><a onclick="handleCall(16)">Damen-Solo</a>`
-            if (curSettings.pureSolo) document.getElementById("call").innerHTML += `<a onclick="handleCall(10)">reines Karo-Solo</a>
-                <a onclick="handleCall(11)">reines Herz-Solo</a><a onclick="handleCall(12)">reines Pik-Solo</a><a onclick="handleCall(13)">reines Kreuz-Solo</a>`
-        }
-        else showCallMenu()
+                <a onclick="handleCall(7)">unreines Herz-Solo</a><a onclick="handleCall(8)">unreines Pik-Solo</a><a onclick="handleCall(9)">unreines Kreuz-Solo</a><a onclick="handleCall(20)">Fleischlos</a>
+                <a onclick="handleCall(18)">Buben-Solo</a><a onclick="handleCall(19)">Damen-Solo</a>`
+            if (curSettings.pureSolo) document.getElementById("call").innerHTML += `<a onclick="handleCall(12)">reines Karo-Solo</a>
+                <a onclick="handleCall(13)">reines Herz-Solo</a><a onclick="handleCall(14)">reines Pik-Solo</a><a onclick="handleCall(15)">reines Kreuz-Solo</a>`
+            if (curSettings.kingNineSolo) document.getElementById("call").innerHTML += `<a onclick="handleCall(10)">unreines Neunen-Solo</a><a onclick="handleCall(11)">unreines Königs-Solo</a>`
+            if (curSettings.pureKingNineSolo) document.getElementById("call").innerHTML += `<a onclick="handleCall(16)">reines Neunen-Solo</a><a onclick="handleCall(17)">reines Königs-Solo</a>`
+            if (curSettings.lossSolo) document.getElementById("call").innerHTML += `<a onclick="handleCall(21)">Verlusts-Solo</a>`
+        } else showCallMenu()
         return
     }
     socket.emit("call", call)
@@ -316,20 +319,23 @@ socket.on('new_trick', (trick) => {
 })
 
 function getPigCard() {
-    if (gameType >= 10) return [-1, -1] //reine soli haben keine schweine
+    if (gameType >= 12) return [-1, -1] //reine soli haben keine schweine
     if (!curSettings.shiftSpecialCardsSolo || gameType <= 6) return [0,2]
+    if (curSettings.shiftSpecialCardsSolo && gameType >= 10) return [-1,-1]
     return [gameType-6, 2]
 }
 
 function getOdelCard() {
-    if (gameType >= 10) return [-1, -1] //reine soli haben keine oedel doedel
+    if (gameType >= 12) return [-1, -1] //reine soli haben keine oedel doedel
     if (!curSettings.shiftSpecialCardsSolo || gameType <= 6) return [1,5]
+    if (curSettings.shiftSpecialCardsSolo && gameType >= 10) return [-1,-1]
     return [(gameType-5)%4, 5]
 }
 
 function getSuperPigCard() {
-    if (gameType >= 10) return [-1, -1] //reine soli haben keine super schweine
+    if (gameType >= 12) return [-1, -1] //reine soli haben keine super schweine
     if (!curSettings.shiftSpecialCardsSolo || gameType <= 6) return [0,0]
+    if (curSettings.shiftSpecialCardsSolo && gameType >= 10) return [-1,-1]
     return [gameType-6, 0]
 }
 
@@ -349,7 +355,7 @@ function getSpecialCards() {
     if (oedel == 2 && curSettings.odel) {
         ownCards.splice(ownCards.findIndex(arr => equals2D(arr, getOdelCard())), 1)
         ownCards.splice(ownCards.findIndex(arr => equals2D(arr, getOdelCard())), 1)
-        if (gameType < 10) { //heart 10s dont exist in pure soli
+        if (gameType < 12) { //heart 10s dont exist in pure soli
         let h10Index = ownCards.findIndex(arr => arr[0] == 1 && arr[1] == 1)
         if (h10Index == -1) {
             ownCards.splice(ownCards.length, 0, getOdelCard())
@@ -413,23 +419,30 @@ socket.on('call', (data) => {
         ownCards.sort((a, b) => {
             //1: a is higher, -1: b is higher
             if (isTrump(a)) {
-            if (!isTrump(b)) return 1;
-            if (a[0] === secondaryTrumpColor[gameType] && !(a[1] == 3 || a[1] == 4)) { // diamond
-                if (b[0] !== 0 || (b[1] == 3 || b[1] == 4)) return -1;
-                if (colorSeq.indexOf(b[1]) > colorSeq.indexOf(a[1])) return -1; else return 1;
-            } else { // not diamond
-                if (b[0] === 0 && !(b[1] == 3 || b[1] == 4)) return 1;
-                if (b[0] === 1 && b[1] === 1) return -1;
-                if (a[0] === 1 && a[1] === 1) return 1;
-                if (b[1] === a[1]) {
-                if (b[0] > a[0]) return -1; else return 1;
+                if (!isTrump(b)) return 1;
+                if (a[0] === secondaryTrumpColor[gameType] && !(a[1] == 3 || a[1] == 4)) { // diamond
+                    if (b[0] !== 0 || (b[1] == 3 || b[1] == 4)) return -1;
+                    if (colorSeq.indexOf(b[1]) > colorSeq.indexOf(a[1])) return -1; else return 1;
+                } else { // not diamond
+                    if (b[0] === 0 && !(b[1] == 3 || b[1] == 4)) return 1;
+                    if (b[0] === 1 && b[1] === 1) return -1;
+                    if (a[0] === 1 && a[1] === 1) return 1;
+                    if (b[1] === a[1]) {
+                        if (b[0] > a[0]) return -1; else return 1;
+                      }
+                    if (data.type == 10 && a[1] === 0) return 1; else return -1;
+                    if (data.type == 10 && b[1] === 0) return -1; else return 1;
+                    if (data.type == 11 && a[1] === 5) return 1; else return -1;
+                    if (data.type == 11 && b[1] === 5) return -1; else return 1;
+                    if (b[1] === a[1]) {
+                    if (b[0] > a[0]) return -1; else return 1;
+                    }
+                    if (b[1] > a[1]) return -1; else return 1;
                 }
-                if (b[1] > a[1]) return -1; else return 1;
-            }
             } else {
-            if (isTrump(b)) return -1;
-            if (b[0] !== a[0]) return a[0]-b[0];
-            return colorSeq.indexOf(a[1]) - colorSeq.indexOf(b[1])
+                if (isTrump(b)) return -1;
+                if (b[0] !== a[0]) return a[0]-b[0];
+                return colorSeq.indexOf(a[1]) - colorSeq.indexOf(b[1])
             }
           });
         getSpecialCards()
@@ -580,8 +593,10 @@ function renderResult(result) {
     const scoreRows = Object.entries(result[1].points).map(([key, value]) => {
         if (key == "Solo") {
             return `<tr><th>${key}</th><td><b>*3</b></td><td></td></tr>`;
-        }
-        if (key == "Feigheit") { //both only have symbolic(?) value
+        } else if (key == "Feigheit") { //both only have symbolic(?) value
+            reScore *= -1
+            return `<tr><th>${key}</th><td><b>*(-1)</b></td><td><b>*(-1)</b></td></tr>`;
+        } else if (key == "Verlusts-Solo") {
             reScore *= -1
             return `<tr><th>${key}</th><td><b>*(-1)</b></td><td><b>*(-1)</b></td></tr>`;
         } else {
@@ -609,18 +624,26 @@ function renderResult(result) {
 }
 
 function isTrump(card) {
-    if (gameType <= 9) {
+    if (gameType <= 11 || gameType == 21) {
       if (card[1] == 3 || card[1] == 4 || (card[0] == 1 && card[1] == 1) ||
       (special_cards.includes(2) && equals2D(card, getOdelCard())) ||
       (special_cards.includes(0) && equals2D(card, getPigCard())) ||
       (special_cards.includes(1) && equals2D(card, getSuperPigCard()))) 
         return true;
     }
-    if ((gameType <= 6 || gameType == 10) && card[0] == 0) return true;
-    if ((gameType == 7 || gameType == 11) && card[0] == 1) return true;
-    if ((gameType == 8 || gameType == 12) && card[0] == 2) return true;
-    if ((gameType == 9 || gameType == 13) && card[0] == 3) return true;
-    if (gameType == 14) return false;
+    if ((gameType <= 6 || gameType == 12) && card[0] == 0) return true;
+    if ((gameType == 7 || gameType == 13) && card[0] == 1) return true;
+    if ((gameType == 8 || gameType == 14) && card[0] == 2) return true;
+    if ((gameType == 9 || gameType == 15) && card[0] == 3) return true;
+    
+    if ((gameType == 10 || gameType == 16) && card[1] == 0) return true;//neunersoli
+    if ((gameType == 11 || gameType == 17) && card[1] == 5) return true;//koenigssoli
+
+    if ((gameType == 18) && card[1] == 3) return true;//bubensoli
+    if ((gameType == 19) && card[1] == 4) return true;//damensoli
+
+    if (gameType == 20) return false; //fleischlos
+
     return false;
 }
 
