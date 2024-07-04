@@ -37,10 +37,10 @@ function isTrump(card,socket,ignOdl=false) {
   }
 
   //farbsoli
-  if ((gameType <= 6 || gameType == 10) && card[0] == 0) return true;
-  if ((gameType == 7 || gameType == 11) && card[0] == 1) return true;
-  if ((gameType == 8 || gameType == 12) && card[0] == 2) return true;
-  if ((gameType == 9 || gameType == 13) && card[0] == 3) return true;
+  if ((gameType <= 6 || gameType == 12) && card[0] == 0) return true;
+  if ((gameType == 7 || gameType == 13) && card[0] == 1) return true;
+  if ((gameType == 8 || gameType == 14) && card[0] == 2) return true;
+  if ((gameType == 9 || gameType == 15) && card[0] == 3) return true;
 
   if ((gameType == 10 || gameType == 16) && card[1] == 0) return true;//neunersoli
   if ((gameType == 11 || gameType == 17) && card[1] == 5) return true;//koenigssoli
@@ -137,6 +137,9 @@ function getHighestCard(cards, socket) {
         }
         if (highestCard[0] === 1 && highestCard[1] === 1) continue;
 
+        if (card[1] === highestCard[1]) {
+          if (card[0] > highestCard[0]) { highestCard = card; highestCardIndex = i; continue; } else continue;
+        }
         if (gameType == 10 && card[1] == 0) { highestCard = card; highestCardIndex = i; continue; }
         if (gameType == 10 && highestCard[1] == 0) continue;
         if (gameType == 11 && card[1] == 5) { highestCard = card; highestCardIndex = i; continue; }
@@ -145,7 +148,6 @@ function getHighestCard(cards, socket) {
         if (highestCard[0] == 1 && highestCard[1] == 5) continue;
         if (card[0] === curTrumpColor && !(card[1] == 3 || card[1] == 4)) continue;
         if (card[1] > highestCard[1]) { highestCard = card; highestCardIndex = i; continue; }
-        if (card[1] === highestCard[1] && card[0] > highestCard[0]) { highestCard = card; highestCardIndex = i; }
       }
     } else { // not trump
       if (isTrump(card,socket)) { highestCard = card; highestCardIndex = i; continue; }
@@ -651,16 +653,23 @@ io.on('connection', (socket) => {
                           if (b[0] !== 0 || (b[1] == 3 || b[1] == 4)) return -1;
                           if (colorSeq.indexOf(b[1]) > colorSeq.indexOf(a[1])) return -1; else return 1;
                       } else { // not diamond
-                          if (b[0] === 0 && !(b[1] == 3 || b[1] == 4)) return 1;
+                          if (b[0] === secondaryTrumpColor[games.get(socket.game_id).type] && !(b[1] == 3 || b[1] == 4)) return 1;
                           if (b[0] === 1 && b[1] === 1) return -1;
                           if (a[0] === 1 && a[1] === 1) return 1;
+
                           if (b[1] === a[1]) {
                             if (b[0] > a[0]) return -1; else return 1;
                           }
-                          if (highestCall == 10 && a[1] === 0) return 1; else return -1;
-                          if (highestCall == 10 && b[1] === 0) return -1; else return 1;
-                          if (highestCall == 11 && a[1] === 5) return 1; else return -1;
-                          if (highestCall == 11 && b[1] === 5) return -1; else return 1;
+
+                          if (highestCall == 10) {
+                            if (a[1] === 0) return 1;
+                            if (b[1] === 0) return -1;
+                          }
+                          if (highestCall == 11) {
+                              if (a[1] === 5) return 1;
+                              if (b[1] === 5) return -1;
+                          }
+
                           if (b[1] > a[1]) return -1; else return 1;
                       }
                     } else {

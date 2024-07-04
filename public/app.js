@@ -424,18 +424,24 @@ socket.on('call', (data) => {
                     if (b[0] !== 0 || (b[1] == 3 || b[1] == 4)) return -1;
                     if (colorSeq.indexOf(b[1]) > colorSeq.indexOf(a[1])) return -1; else return 1;
                 } else { // not diamond
-                    if (b[0] === 0 && !(b[1] == 3 || b[1] == 4)) return 1;
+                    if (b[0] === secondaryTrumpColor[gameType] && !(b[1] == 3 || b[1] == 4)) return 1;
                     if (b[0] === 1 && b[1] === 1) return -1;
                     if (a[0] === 1 && a[1] === 1) return 1;
                     if (b[1] === a[1]) {
                         if (b[0] > a[0]) return -1; else return 1;
-                      }
-                    if (data.type == 10 && a[1] === 0) return 1; else return -1;
-                    if (data.type == 10 && b[1] === 0) return -1; else return 1;
-                    if (data.type == 11 && a[1] === 5) return 1; else return -1;
-                    if (data.type == 11 && b[1] === 5) return -1; else return 1;
+                    }
+                    
                     if (b[1] === a[1]) {
-                    if (b[0] > a[0]) return -1; else return 1;
+                        if (b[0] > a[0]) return -1; else return 1;
+                    }
+
+                    if (data.type == 10) {
+                        if (a[1] === 0) return 1;
+                        if (b[1] === 0) return -1;
+                    }
+                    if (data.type == 11) {
+                          if (a[1] === 5) return 1;
+                          if (b[1] === 5) return -1;
                     }
                     if (b[1] > a[1]) return -1; else return 1;
                 }
