@@ -315,7 +315,7 @@ socket.on('new_trick', (trick) => {
             currentTrick = trick
             inAnimation = 0
         }, 500)
-    }, 500)
+    }, 2000)
 })
 
 function getPigCard() {
