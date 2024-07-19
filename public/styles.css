@@ -452,7 +452,10 @@ button:active {
   0% {
     transform: translate(-10%,50%);
   }
-  66% {
+  50% {
+    transform: translate(-50%,-50%);
+  }
+  70% {
     transform: translate(-50%,-50%);
   }
   100% {

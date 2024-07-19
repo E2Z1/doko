@@ -774,6 +774,7 @@ io.on('connection', (socket) => {
           }
           
           getSpecialCards(io.sockets.sockets.get(user.socketId))
+          getSpecialCards(socket)
           socket.emit("swapArmutCards", games.get(socket.game_id).users[socket.userId].cards)
           io.to(user.socketId).emit("swapArmutCards", user.cards)
           games.get(socket.game_id).type = 1
