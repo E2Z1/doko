@@ -317,12 +317,12 @@ button:active {
   transition: transform 0.5s;
 }
 
-#player0 .card:hover {
+#player0 .card:hover, .card:focus-visible {
   transform: rotate(calc(var(--i)*6deg)) translate(calc(var(--i)*2.5vh), -17vh);
-
+  outline: none;
 }
 
-#player-name {
+.player-name {
   transition: 0.3s;
   position: fixed;
   color: white;
@@ -335,7 +335,7 @@ button:active {
   user-select: none;
 }
 
-.their-turn #player-name {
+.their-turn .player-name {
   font-size: 30px;
   top: -4vh;
   background: linear-gradient(45deg, #b1a4a4 0%, #ffffff 100%);
