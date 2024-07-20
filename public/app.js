@@ -15,7 +15,7 @@ let armutCards = []
 let showCalledQueue = [[],[],[],[]] //for each user one list
 let gameType = 1;
 const colorSeq = [0,3,4,5,1,2];
-const secondaryTrumpColor = [0,0,0,0,0,0,0,1,2,3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0]
+const secondaryTrumpColor = [0,0,0,0,0,0,0,1,2,3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1]
 let refreshInterval = setInterval(() => socket.emit('getPublicGames'), 5000);
 const cardsWorth = [0,10,11,2,3,4]
 
@@ -42,6 +42,7 @@ function getGameSettings() {
         pureKingNineSolo: true,
         kingNineSolo: false,
         lossSolo: false,
+        redBlackSolo: false,
     }
     if (!localStorage.getItem("settings") || Object.keys(JSON.parse(localStorage.getItem("settings"))).length != Object.keys(defaultSettings).length) {
         //standard preferences by me
@@ -217,6 +218,7 @@ function handleCall(call, armut=false) {
             if (curSettings.kingNineSolo) document.getElementById("call").innerHTML += `<a onclick="handleCall(10)">unreines Neunen-Solo</a><a onclick="handleCall(11)">unreines Königs-Solo</a>`
             if (curSettings.pureKingNineSolo) document.getElementById("call").innerHTML += `<a onclick="handleCall(16)">reines Neunen-Solo</a><a onclick="handleCall(17)">reines Königs-Solo</a>`
             if (curSettings.lossSolo) document.getElementById("call").innerHTML += `<a onclick="handleCall(21)">Verlusts-Solo</a>`
+            if (curSettings.redBlackSolo) document.getElementById("call").innerHTML += `<a onclick="handleCall(22)">Rot-Solo</a><a onclick="handleCall(23)">Schwarz-Solo</a>`
         } else showCallMenu()
         return
     }
@@ -424,26 +426,26 @@ socket.on('call', (data) => {
                     if (b[0] !== 0 || (b[1] == 3 || b[1] == 4)) return -1;
                     if (colorSeq.indexOf(b[1]) > colorSeq.indexOf(a[1])) return -1; else return 1;
                 } else { // not diamond
-                    if (b[0] === secondaryTrumpColor[gameType] && !(b[1] == 3 || b[1] == 4)) return 1;
-                    if (b[0] === 1 && b[1] === 1) return -1;
-                    if (a[0] === 1 && a[1] === 1) return 1;
-                    if (b[1] === a[1]) {
-                        if (b[0] > a[0]) return -1; else return 1;
+                    if (data.type <= 11) {  //unreine soli
+                        if (b[0] === secondaryTrumpColor[games.get(socket.game_id).type] && !(b[1] == 3 || b[1] == 4)) return 1;
+                        if (b[0] === 1 && b[1] === 1) return -1;
+                        if (a[0] === 1 && a[1] === 1) return 1;
+
+                        if (data.type == 10) {
+                            if (a[1] === 0) return 1;
+                            if (b[1] === 0) return -1;
+                        }
+                        if (data.type == 11) {
+                            if (a[1] === 5) return 1;
+                            if (b[1] === 5) return -1;
+                        }
                     }
-                    
+
                     if (b[1] === a[1]) {
                         if (b[0] > a[0]) return -1; else return 1;
                     }
 
-                    if (data.type == 10) {
-                        if (a[1] === 0) return 1;
-                        if (b[1] === 0) return -1;
-                    }
-                    if (data.type == 11) {
-                          if (a[1] === 5) return 1;
-                          if (b[1] === 5) return -1;
-                    }
-                    if (b[1] > a[1]) return -1; else return 1;
+                    if (colorSeq.indexOf(b[1]) > colorSeq.indexOf(a[1])) return -1; else return 1;
                 }
             } else {
                 if (isTrump(b)) return -1;
@@ -637,10 +639,15 @@ function isTrump(card) {
       (special_cards.includes(1) && equals2D(card, getSuperPigCard()))) 
         return true;
     }
+
+    //if (secondaryTrumpColor[gameType] == card[0]) return true;    ignores pure soli
+
+      //farbsoli
     if ((gameType <= 6 || gameType == 12) && card[0] == 0) return true;
     if ((gameType == 7 || gameType == 13) && card[0] == 1) return true;
     if ((gameType == 8 || gameType == 14) && card[0] == 2) return true;
     if ((gameType == 9 || gameType == 15) && card[0] == 3) return true;
+
     
     if ((gameType == 10 || gameType == 16) && card[1] == 0) return true;//neunersoli
     if ((gameType == 11 || gameType == 17) && card[1] == 5) return true;//koenigssoli
@@ -648,6 +655,9 @@ function isTrump(card) {
     if ((gameType == 18) && card[1] == 3) return true;//bubensoli
     if ((gameType == 19) && card[1] == 4) return true;//damensoli
 
+    if ((gameType == 22) && (card[0] == 0 || card[0] == 1)) return true;//rotsoli
+    if ((gameType == 23) && (card[0] == 2 || card[0] == 3)) return true;//schwarzsoli
+    
     if (gameType == 20) return false; //fleischlos
 
     return false;

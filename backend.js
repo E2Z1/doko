@@ -17,7 +17,7 @@ app.get('/', (req, res) => {
 
 const games = new Map()
 
-const secondaryTrumpColor = [0,0,0,0,0,0,0,1,2,3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0]
+const secondaryTrumpColor = [0,0,0,0,0,0,0,1,2,3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1]
 
 function isTrump(card,socket,ignOdl=false) {
   let gameType = 1
@@ -36,6 +36,8 @@ function isTrump(card,socket,ignOdl=false) {
       return true;
   }
 
+ //if (secondaryTrumpColor[gameType] == card[0]) return true;    ignores pure soli
+
   //farbsoli
   if ((gameType <= 6 || gameType == 12) && card[0] == 0) return true;
   if ((gameType == 7 || gameType == 13) && card[0] == 1) return true;
@@ -47,6 +49,9 @@ function isTrump(card,socket,ignOdl=false) {
 
   if ((gameType == 18) && card[1] == 3) return true;//bubensoli
   if ((gameType == 19) && card[1] == 4) return true;//damensoli
+  
+  if ((gameType == 22) && (card[0] == 0 || card[0] == 1)) return true;//rotsoli
+  if ((gameType == 23) && (card[0] == 2 || card[0] == 3)) return true;//schwarzsoli
 
   if (gameType == 20) return false; //fleischlos
   return false;
@@ -128,14 +133,16 @@ function getHighestCard(cards, socket) {
         if (equals2D(highestCard, getPigCard(socket)) && games.get(socket.game_id).special_cards.includes(0)) continue;
         if (equals2D(card, getPigCard(socket)) && games.get(socket.game_id).special_cards.includes(0)) { highestCard = card; highestCardIndex = i; continue; }
 
-        if (card[0] === 1 && card[1] === 1) {
-          if (!(highestCard[0] === 1 && highestCard[1] === 1 && games.get(socket.game_id).special_cards.includes(0))) {
-            highestCard = card;
-            highestCardIndex = i;
-            continue;
+        if (gameType <= 11) { //unreine soli
+          if (card[0] === 1 && card[1] === 1) {
+            if (!(highestCard[0] === 1 && highestCard[1] === 1 && games.get(socket.game_id).special_cards.includes(0))) {
+              highestCard = card;
+              highestCardIndex = i;
+              continue;
+            }
           }
-        }
-        if (highestCard[0] === 1 && highestCard[1] === 1) continue;
+          if (highestCard[0] === 1 && highestCard[1] === 1) continue;
+        } 
 
         if (card[1] === highestCard[1]) {
           if (card[0] > highestCard[0]) { highestCard = card; highestCardIndex = i; continue; } else continue;
@@ -144,10 +151,10 @@ function getHighestCard(cards, socket) {
         if (gameType == 10 && highestCard[1] == 0) continue;
         if (gameType == 11 && card[1] == 5) { highestCard = card; highestCardIndex = i; continue; }
         if (gameType == 11 && highestCard[1] == 5) continue;
-        if (card[0] == 1 && card[1] == 5) { highestCard = card; highestCardIndex = i; continue; }
-        if (highestCard[0] == 1 && highestCard[1] == 5) continue;
+        if (games.get(socket.game_id).special_cards.includes(2) && card[0] == 1 && card[1] == 5) { highestCard = card; highestCardIndex = i; continue; }
+        if (games.get(socket.game_id).special_cards.includes(2) && highestCard[0] == 1 && highestCard[1] == 5) continue;
         if (card[0] === curTrumpColor && !(card[1] == 3 || card[1] == 4)) continue;
-        if (card[1] > highestCard[1]) { highestCard = card; highestCardIndex = i; continue; }
+        if (colorSeq.indexOf(card[1]) > colorSeq.indexOf(highestCard[1])) { highestCard = card; highestCardIndex = i; continue; }
       }
     } else { // not trump
       if (isTrump(card,socket)) { highestCard = card; highestCardIndex = i; continue; }
@@ -620,7 +627,7 @@ io.on('connection', (socket) => {
           //let vorbehalte = ["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "unreines Karo-Solo", "unreines Herz-Solo", "unreines Pik-Solo", "unreines Kreuz-Solo",
           //(old)  "reines Karo-Solo", "reines Herz-Solo", "reines Pik-Solo", "reines Kreuz-Solo", "Fleischlos"]
           let vorbehalte = ["Error", "Gesund", "Hochzeit", "Armut", "Schmeißen", "beliebiges Solo", "unreines Karo-Solo", "unreines Herz-Solo", "unreines Pik-Solo", "unreines Kreuz-Solo", "unreines Neunen-Solo", "unreines Königs-Solo",
-            "reines Karo-Solo", "reines Herz-Solo", "reines Pik-Solo", "reines Kreuz-Solo", "reines Neunen-Solo", "reines Königs-Solo", "Buben-Solo", "Damen-Solo", "Fleischlos", "Verlust-Solo"]
+            "reines Karo-Solo", "reines Herz-Solo", "reines Pik-Solo", "reines Kreuz-Solo", "reines Neunen-Solo", "reines Königs-Solo", "Buben-Solo", "Damen-Solo", "Fleischlos", "Verlust-Solo", "Rot-Solo", "Schwarz-Solo"]
           setTimeout(() => {
             io.to(socket.game_id).emit('call', {caller: highestUser, msg: vorbehalte[highestCall], type: highestCall})
             games.get(socket.game_id).type = highestCall
@@ -644,41 +651,43 @@ io.on('connection', (socket) => {
                   games.get(socket.game_id).users[user.userId].party = 0
                   io.to(user.socketId).emit("change_party", 0)
                 }
-                for (let i = 0; i<2; i++) {  //why am i sorting twice?  i dont know anymore future/past me please explain
-                  user.cards.sort((a, b) => {
-                    //1: a is higher, -1: b is higher
-                    if (isTrump(a,socket,ignOdl=true)) {
-                      if (!isTrump(b,socket,ignOdl=true)) return 1;
-                      if (a[0] === secondaryTrumpColor[games.get(socket.game_id).type] && !(a[1] == 3 || a[1] == 4)) { // diamond
-                          if (b[0] !== 0 || (b[1] == 3 || b[1] == 4)) return -1;
-                          if (colorSeq.indexOf(b[1]) > colorSeq.indexOf(a[1])) return -1; else return 1;
-                      } else { // not diamond
+                //for (let i = 0; i<2; i++) {  //why am i sorting twice?  i dont know anymore future/past me please explain
+                user.cards.sort((a, b) => {
+                  //1: a is higher, -1: b is higher
+                  if (isTrump(a,socket,ignOdl=true)) {
+                    if (!isTrump(b,socket,ignOdl=true)) return 1;
+                    if (a[0] === secondaryTrumpColor[games.get(socket.game_id).type] && !(a[1] == 3 || a[1] == 4)) { // diamond
+                      if (b[0] !== 0 || (b[1] == 3 || b[1] == 4)) return -1;
+                      if (colorSeq.indexOf(b[1]) > colorSeq.indexOf(a[1])) return -1; else return 1;
+                    } else { // not diamond
+                      if (highestCall <= 11) {  //unreine soli
                           if (b[0] === secondaryTrumpColor[games.get(socket.game_id).type] && !(b[1] == 3 || b[1] == 4)) return 1;
                           if (b[0] === 1 && b[1] === 1) return -1;
                           if (a[0] === 1 && a[1] === 1) return 1;
-
-                          if (b[1] === a[1]) {
-                            if (b[0] > a[0]) return -1; else return 1;
-                          }
-
+  
                           if (highestCall == 10) {
-                            if (a[1] === 0) return 1;
-                            if (b[1] === 0) return -1;
+                              if (a[1] === 0) return 1;
+                              if (b[1] === 0) return -1;
                           }
                           if (highestCall == 11) {
                               if (a[1] === 5) return 1;
                               if (b[1] === 5) return -1;
                           }
-
-                          if (b[1] > a[1]) return -1; else return 1;
                       }
-                    } else {
-                      if (isTrump(b,socket,ignOdl=true)) return -1;
-                      if (b[0] !== a[0]) return a[0]-b[0];
-                      return colorSeq.indexOf(a[1]) - colorSeq.indexOf(b[1])
-                    }
-                  });
-                }
+  
+                      if (b[1] === a[1]) {
+                          if (b[0] > a[0]) return -1; else return 1;
+                      }
+  
+                      if (colorSeq.indexOf(b[1]) > colorSeq.indexOf(a[1])) return -1; else return 1;
+                  }
+                  } else {
+                    if (isTrump(b,socket,ignOdl=true)) return -1;
+                    if (b[0] !== a[0]) return a[0]-b[0];
+                    return colorSeq.indexOf(a[1]) - colorSeq.indexOf(b[1])
+                  }
+                });
+                //}
                 getSpecialCards(io.sockets.sockets.get(user.socketId))
               })
             }
