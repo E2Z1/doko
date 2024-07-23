@@ -20,6 +20,9 @@ a {
   background-color: #e5e5e5;
   height: 50.5px;
   overflow: hidden;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
  
 nav ul {
@@ -342,7 +345,7 @@ button:active {
 }
 
 .their-turn#player0 .card {
-  height: 50vh;
+  height: 54vh;
 }
 
 .their-turn#player0 {
@@ -491,19 +494,30 @@ button:active {
 .rules h1 {
   color: #e5e5e5;
   margin-left: 10px;
+  margin-top: 50px;
 }
 
 .rules h2 {
   color: #e5e5e5;
   margin-left: 20px;
+  margin-top: 30px;
 }
 
-.rules p {
+.rules p, .rules li {
   color: #e5e5e5;
   margin-left: 40px;
   margin-right: 80px;
-  margin-bottom: 50px;
-  margin-top: 0px;
+}
+
+.rules li {
+  display: list-item;
+  margin-bottom: 10px;
+}
+
+.rules a {
+  color: #00f2ff;
+  text-decoration: none;
+  padding: 2px;
 }
 
 

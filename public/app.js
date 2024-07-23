@@ -505,7 +505,7 @@ function renderCardsfor(userid) {
         let rot = 0
         for (let j = 0; j<userCards.length;j++) {
             if (!armutCards.includes(j)) {
-                getCardsElement(userid).innerHTML += `<img class="card" onclick="placeCard(${j})" onkeydown="if(event.key === 'Enter' || event.key === ' ') placeCard(${j})" src="/cards/${userCards[j][0]}-${userCards[j][1]}.svg" style="--i:${(rot-(Math.ceil((Object.keys(userCards).length-armutCards.length)/2)-1))}" draggable="false" tabindex="0">`
+                getCardsElement(userid).innerHTML += `<img class="card" onclick="placeCard(${j})" onkeydown="if(event.key === 'Enter' || event.key === ' ') placeCard(${j})" src="/cards/${userCards[j][0]}-${userCards[j][1]}.svg" style="--i:${(rot-((Object.keys(userCards).length-armutCards.length)/2-0.5))}" draggable="false" tabindex="0">`
                 rot++
             }
         }
@@ -513,7 +513,7 @@ function renderCardsfor(userid) {
         let elem = getCardsElement(userid)
         elem.innerHTML = ''
         for (let j = 0; j<userCards;j++) {
-            elem.innerHTML += '<img class="card" src="/cards/back.svg" style="--i:'+(j-(Math.ceil(userCards/2)-1))+'" draggable="false">'
+            elem.innerHTML += '<img class="card" src="/cards/back.svg" style="--i:'+(j-(Math.ceil(userCards/2)))+'" draggable="false">'
         }
         getPlayerElement(userid).innerHTML += `<p class="player-name" ${admins.includes(users[userid].username) ? 'class="admin"' : ''}>${users[userid].username}</p>`;
     }
