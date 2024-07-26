@@ -22,6 +22,23 @@ const cardsWorth = [0,10,11,2,3,4]
 var placeCardSFXs// = [new Audio("/sfx/front.mp3"), new Audio("/sfx/left.mp3"), new Audio("/sfx/back.mp3"), new Audio("/sfx/right.mp3")]
 var userSettings
 
+const defaultSettings = {
+    public: true,
+    odel: true,
+    superpigs: true,
+    klabautermann: true,
+    feigheit: true,
+    koppeldopf: true,
+    soloStart: true,
+    pureSolo: false,
+    shiftSpecialCardsSolo: false,
+    manyFulls: true,
+    pureKingNineSolo: true,
+    kingNineSolo: false,
+    lossSolo: false,
+    redBlackSolo: false,
+}
+
 function playSound(sound) {
     sound.currentTime = 0;
     sound.play()
@@ -35,22 +52,6 @@ socket.on("error", (msg) => {
 
 
 function getGameSettings() {
-    defaultSettings = {
-        public: true,
-        odel: true,
-        superpigs: true,
-        klabautermann: true,
-        feigheit: true,
-        koppeldopf: true,
-        soloStart: true,
-        pureSolo: false,
-        shiftSpecialCardsSolo: false,
-        manyFulls: true,
-        pureKingNineSolo: true,
-        kingNineSolo: false,
-        lossSolo: false,
-        redBlackSolo: false,
-    }
     if (!localStorage.getItem("settings") || Object.keys(JSON.parse(localStorage.getItem("settings"))).length != Object.keys(defaultSettings).length) {
         //standard preferences by me
         localStorage.setItem("settings", JSON.stringify(defaultSettings))
@@ -94,6 +95,10 @@ document.addEventListener("DOMContentLoaded", function(e) {
     Object.entries(userSettings).forEach((setting) => {
         document.getElementById(setting[0]).checked = setting[1]
     })
+
+    if (!localStorage.getItem("settings")) {
+        document.querySelector('.defaultSettingsWarning').style.display = "block"
+    }
 })
 
 function saveUserSettings() {
@@ -258,6 +263,7 @@ function startGame(data) {
     clearTimeout(joinTimeout)
     if (document.getElementsByClassName("select-game")[0]) document.getElementsByClassName("select-game")[0].remove();
     if (document.getElementsByClassName("navbar")[0]) document.getElementsByClassName("navbar")[0].remove();
+    if (document.getElementsByClassName("userSettings")[0]) document.getElementsByClassName("userSettings")[0].remove();
     const gameContainer = document.getElementsByClassName("game-container")[0];
     gameContainer.style.width = '100%';
     gameContainer.style.height = '100%';

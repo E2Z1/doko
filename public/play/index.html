@@ -108,12 +108,11 @@
       </div>
       <div class="result-container">
       </div>
-    </div>
-
-    <div class="armut-give">
-      <div class="armut-cards">
+      <div class="armut-give">
+        <div class="armut-cards">
+        </div>
+        <button id="armut-release-button" onclick="giveArmutCards()">Give Cards</button>
       </div>
-      <button id="armut-release-button" onclick="giveArmutCards()">Give Cards</button>
     </div>
 
     <div class="select-game">
@@ -142,6 +141,13 @@
         <label for="SFXToggle">SFX</label>
       </div>
       <button id="saveSettings" onclick="saveUserSettings()">Save Settings</button>
+    </div>
+
+    <div class="defaultSettingsWarning">
+      <a class="closeX" onclick="document.querySelector('.defaultSettingsWarning').style.display = 'none'">X</a>
+      <h3>You are currently using the default settings for creating a new game</h3>
+      <button onclick="window.location.href='/settings'">Change</button>
+      <button onclick="localStorage.setItem('settings', JSON.stringify(defaultSettings));document.querySelector('.defaultSettingsWarning').style.display = 'none'">Ignore</button>
     </div>
 
     <div id="errorContainer" class="error-container">Error: </div>

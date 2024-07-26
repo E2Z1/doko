@@ -247,6 +247,7 @@ button {
   border: 0;
   border-bottom: 2px solid #929292;
   cursor: pointer;
+  margin-top: 0px;
 }
 #login-button {
   background: #4f4e4e;
@@ -300,6 +301,27 @@ button:active {
   height: 20vh;
   transform: rotate(calc(var(--i)*6deg)) translate(calc(var(--i)*2.5vh), -5vh);
   user-select: none;
+}
+
+.defaultSettingsWarning {
+  display: none;
+  background: linear-gradient(180deg, #f1f1f1 0%, #ffffff 100%);
+  border-radius: 10px;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 60px;
+  right: 10px;
+  box-shadow: 0 1px 2px 0 #000000;
+  padding: 10px;
+  width: 25em;
+  z-index: 15;
+}
+
+.defaultSettingsWarning button {
+  color: #ffffff;
+  background-color: #000000;
+  height: 2em;
 }
 
 #current_trick {
@@ -520,9 +542,4 @@ button:active {
   color: #00f2ff;
   text-decoration: none;
   padding: 2px;
-}
-
-
-@media screen and (max-width:320px) {
-  
 }
