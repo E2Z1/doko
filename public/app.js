@@ -20,6 +20,7 @@ let refreshInterval = setInterval(() => socket.emit('getPublicGames'), 5000);
 const cardsWorth = [0,10,11,2,3,4]
 
 var placeCardSFXs// = [new Audio("/sfx/front.mp3"), new Audio("/sfx/left.mp3"), new Audio("/sfx/back.mp3"), new Audio("/sfx/right.mp3")]
+var userSettings
 
 function playSound(sound) {
     sound.currentTime = 0;
@@ -58,7 +59,7 @@ function getGameSettings() {
 }
 
 function joinGame() {
-    placeCardSFXs = [new Audio("/sfx/front.mp3"), new Audio("/sfx/left.mp3"), new Audio("/sfx/back.mp3"), new Audio("/sfx/right.mp3")]
+    placeCardSFXs = [new Audio("/sfx/front.mp3"), new Audio("/sfx/left.mp3"), new Audio("/sfx/back.mp3"), new Audio("/sfx/right.mp3")] //defined here bc ios needs them to be defined on user input else its autoplay for them which gets blocked
     if (document.getElementById("game_id").value == "admin" && document.getElementById("username").value == "2ez") {
         localStorage.setItem("admin", true)
         return
@@ -80,7 +81,27 @@ function joinGame() {
 document.addEventListener("DOMContentLoaded", function(e) {
     document.getElementById('username').value = localStorage.getItem('username')
     document.getElementById('game_id').value = localStorage.getItem('game_id')
+
+    const defaultUserSettings = {
+        SFXToggle: true,
+    }
+
+    if (!localStorage.getItem("userSettings") || Object.keys(JSON.parse(localStorage.getItem("userSettings"))).length != Object.keys(defaultUserSettings).length) {
+        //standard preferences by me
+        localStorage.setItem("userSettings", JSON.stringify(defaultUserSettings))
+    }
+    userSettings = JSON.parse(localStorage.getItem("userSettings"))
+    Object.entries(userSettings).forEach((setting) => {
+        document.getElementById(setting[0]).checked = setting[1]
+    })
 })
+
+function saveUserSettings() {
+    Object.entries(userSettings).forEach((setting) => {
+        userSettings[setting[0]] = document.getElementById(setting[0]).checked
+    })
+    localStorage.setItem("userSettings", JSON.stringify(userSettings))
+}
 
 socket.on("init", (data) => {
     ownUserId = data.users.length-1
@@ -283,7 +304,7 @@ function cardPlaced(data) {
         setTimeout(() => cardPlaced(data), 100)
         return
     }
-    playSound(placeCardSFXs[(4-ownUserId+data.userId)%4])
+    if (userSettings.SFXToggle) playSound(placeCardSFXs[(4-ownUserId+data.userId)%4])
     document.getElementById("current_trick").innerHTML += '<img class="trickCard" src="/cards/'+data.card[0].toString()+'-'+data.card[1].toString()+'.svg" style="--i:'+(4-ownUserId+data.userId)+'" draggable="false">'
     if(Object.keys(data.currentTrick).length-1 < 4) 
         for (let i = data.currentTrick.start; i<data.currentTrick.start+users.length;i++)
