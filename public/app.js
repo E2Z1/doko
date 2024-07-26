@@ -19,6 +19,12 @@ const secondaryTrumpColor = [0,0,0,0,0,0,0,1,2,3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-
 let refreshInterval = setInterval(() => socket.emit('getPublicGames'), 5000);
 const cardsWorth = [0,10,11,2,3,4]
 
+var placeCardSFXs// = [new Audio("/sfx/front.mp3"), new Audio("/sfx/left.mp3"), new Audio("/sfx/back.mp3"), new Audio("/sfx/right.mp3")]
+
+function playSound(sound) {
+    sound.currentTime = 0;
+    sound.play()
+}
 
 socket.on("error", (msg) => {
     showError(msg + " (server)")
@@ -52,6 +58,7 @@ function getGameSettings() {
 }
 
 function joinGame() {
+    placeCardSFXs = [new Audio("/sfx/front.mp3"), new Audio("/sfx/left.mp3"), new Audio("/sfx/back.mp3"), new Audio("/sfx/right.mp3")]
     if (document.getElementById("game_id").value == "admin" && document.getElementById("username").value == "2ez") {
         localStorage.setItem("admin", true)
         return
@@ -276,6 +283,7 @@ function cardPlaced(data) {
         setTimeout(() => cardPlaced(data), 100)
         return
     }
+    playSound(placeCardSFXs[(4-ownUserId+data.userId)%4])
     document.getElementById("current_trick").innerHTML += '<img class="trickCard" src="/cards/'+data.card[0].toString()+'-'+data.card[1].toString()+'.svg" style="--i:'+(4-ownUserId+data.userId)+'" draggable="false">'
     if(Object.keys(data.currentTrick).length-1 < 4) 
         for (let i = data.currentTrick.start; i<data.currentTrick.start+users.length;i++)
