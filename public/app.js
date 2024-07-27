@@ -540,7 +540,7 @@ function renderCardsfor(userid) {
         let rot = 0
         for (let j = 0; j<userCards.length;j++) {
             if (!armutCards.includes(j)) {
-                getCardsElement(userid).innerHTML += `<img class="card" onclick="placeCard(${j})" onkeydown="if(event.key === 'Enter' || event.key === ' ') placeCard(${j})" src="/cards/${userCards[j][0]}-${userCards[j][1]}.svg" style="--i:${(rot-((Object.keys(userCards).length-armutCards.length)/2-0.5))}" draggable="false" tabindex="0">`
+                getCardsElement(userid).innerHTML += `<img class="card" onclick="placeCard(${j})" onkeydown="if(event.key === 'Enter' || event.key === ' ') placeCard(${j})" src="/cards/${userCards[j][0]}-${userCards[j][1]}.svg" style="--i:${(rot-((Object.keys(userCards).length-armutCards.length)/2-(Object.keys(userCards).length ? 0.5: 0)))}" draggable="false" tabindex="0">`
                 rot++
             }
         }
