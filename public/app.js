@@ -548,7 +548,7 @@ function renderCardsfor(userid) {
         let elem = getCardsElement(userid)
         elem.innerHTML = ''
         for (let j = 0; j<userCards;j++) {
-            elem.innerHTML += '<img class="card" src="/cards/back.svg" style="--i:'+(j-(Math.ceil(userCards/2)))+'" draggable="false">'
+            elem.innerHTML += '<img class="card" src="/cards/back.svg" style="--i:'+(j-(Math.ceil(userCards/2)-1))+'" draggable="false">'
         }
         getPlayerElement(userid).innerHTML += `<p class="player-name" ${admins.includes(users[userid].username) ? 'class="admin"' : ''}>${users[userid].username}</p>`;
     }
