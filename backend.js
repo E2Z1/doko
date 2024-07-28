@@ -608,7 +608,12 @@ io.on('connection', (socket) => {
       if (call == 2 && queensOfClubs != 2) legal = false;
       if (call == 4 && !(nines >= 5 || kings >= 5 || (nines == 4 && kings == 4) || (games.get(socket.game_id).settings.manyFulls && cardValue >= 80))) legal = false;
       if (call == 3 && trumps > 3) legal = false;
-      if (call >= 10 && call <= 13 && !games.get(socket.game_id).settings.pureSolo) legal = false;
+      if (call >= 12 && call <= 15 && !games.get(socket.game_id).settings.pureSolo) legal = false;
+      if (call >= 10 && call <= 11 && !games.get(socket.game_id).settings.kingNineSolo) legal = false;
+      if (call >= 16 && call <= 17 && !games.get(socket.game_id).settings.pureKingNineSolo) legal = false;
+      if (call >= 22 && call <= 23 && !games.get(socket.game_id).settings.redBlackSolo) legal = false;
+      if (call == 21 && !games.get(socket.game_id).settings.lossSolo) legal = false;
+      if (call > 23 || call == 5 || call < 1) legal = false;
       if (legal) io.to(socket.game_id).emit('call', {caller: socket.userId, msg: "Vorbehalt"})
     }
     if (legal) {
@@ -731,7 +736,7 @@ io.on('connection', (socket) => {
       //io.to(socket.game_id).emit("allow_announcements")
       return
     } else {
-      next = socket.userId+1
+      let next = socket.userId+1
       if (next <= 3 && games.get(socket.game_id).users[next].called == 3) next += 1
       if (next > 3) {
         games.get(socket.game_id).users.forEach((user) => {
@@ -748,6 +753,9 @@ io.on('connection', (socket) => {
 
   socket.on("giveArmutCards", (armutcards) => {
     if (games.get(socket.game_id).users[socket.userId].party == 1 && games.get(socket.game_id).type == 3) {
+      if (armut_cards.length != 3) {
+        socket.emit("error", "not three cards")
+      }
       games.get(socket.game_id).users[socket.userId].armut_cards = armutcards
       games.get(socket.game_id).users.forEach((user) => {
         if (user.userId != socket.userId && user.party == 1 && user.armut_cards.length == 3)  {
@@ -807,8 +815,13 @@ io.on('connection', (socket) => {
       }
     })
     let lowestPossibleAnnouncement = games.get(socket.game_id).startAnnouncementsCards - games.get(socket.game_id).users[socket.userId].cards.length
-    games.get(socket.game_id).users[socket.userId].announced = Math.max(highestAnnouncement + 1, lowestPossibleAnnouncement)
-    io.to(socket.game_id).emit("announced", {announcer: socket.userId, announced: Math.max(highestAnnouncement + 1, lowestPossibleAnnouncement), party: games.get(socket.game_id).users[socket.userId].party})
+    let announcement = Math.max(highestAnnouncement + 1, lowestPossibleAnnouncement)
+    if (announcement > 5) {
+      socket.emit("error", "invalid announcement")
+      return false
+    }
+    games.get(socket.game_id).users[socket.userId].announced = announcement
+    io.to(socket.game_id).emit("announced", {announcer: socket.userId, announced: announcement, party: games.get(socket.game_id).users[socket.userId].party})
   })
 
   socket.on('disconnect', () => {
