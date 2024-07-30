@@ -37,6 +37,7 @@ const defaultSettings = {
     kingNineSolo: false,
     lossSolo: false,
     redBlackSolo: false,
+    throwOverSolo: false,
 }
 
 function playSound(sound) {
@@ -462,7 +463,7 @@ socket.on('call', (data) => {
                     if (colorSeq.indexOf(b[1]) > colorSeq.indexOf(a[1])) return -1; else return 1;
                 } else { // not diamond
                     if (data.type <= 11) {  //unreine soli
-                        if (b[0] === secondaryTrumpColor[games.get(socket.game_id).type] && !(b[1] == 3 || b[1] == 4)) return 1;
+                        if (b[0] === secondaryTrumpColor[data.type] && !(b[1] == 3 || b[1] == 4)) return 1;
                         if (b[0] === 1 && b[1] === 1) return -1;
                         if (a[0] === 1 && a[1] === 1) return 1;
 
