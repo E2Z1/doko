@@ -38,6 +38,7 @@ const defaultSettings = {
     lossSolo: false,
     redBlackSolo: false,
     throwOverSolo: false,
+    feigheitInSolo: false,
 }
 
 function playSound(sound) {
