@@ -166,7 +166,7 @@ function getHighestCard(cards, socket) {
 }
 
 function censorUserData(odata, UserId) {
-  data = JSON.parse(JSON.stringify(odata))
+  let data = JSON.parse(JSON.stringify(odata))
   data.users.forEach(user => {
     if (user.userId != UserId) {
       user.cards = user.cards.length
@@ -250,7 +250,7 @@ function endTrick(socket) {
     }
 
     //doppelkopf
-    cardVal = 0
+    let cardVal = 0
     trick_cards.forEach((card) => cardVal += cardsWorth[card[1]])
     if (cardVal >= 40) {
       io.to(socket.game_id).emit('special_point', {point_name: "Doppelkopf", winner})
@@ -368,7 +368,6 @@ function endGame(socket) {
     results[1].points["Verlusts-Solo"] = 1 //symbolic value actual value calculated by client
   }
 
-  console.log(results);
   io.to(socket.game_id).emit('game_ended', results)
   socket.rooms.delete(socket.game_id)
   games.delete(socket.game_id)
@@ -424,7 +423,7 @@ function getSpecialCards(socket) {
     user.cards.splice(user.cards.findIndex(arr => equals2D(arr, getOdelCard(socket))), 1)
     user.cards.splice(user.cards.findIndex(arr => equals2D(arr, getOdelCard(socket))), 1)
     if (game.type < 12) { //heart 10s dont exist in pure soli
-      h10Index = user.cards.findIndex(arr => arr[0] == 1 && arr[1] == 1)
+      let h10Index = user.cards.findIndex(arr => arr[0] == 1 && arr[1] == 1)
       if (h10Index == -1) {
         user.cards.splice(user.cards.length, 0, getOdelCard(socket))
         user.cards.splice(user.cards.length, 0, getOdelCard(socket))
@@ -491,7 +490,7 @@ function isValid(cardId, socket) {
 
   //actual rules
   if (curGame.currentTrick.start == socket.userId) return true //the first player can do whatever they want
-  startColor = getColor(curGame.currentTrick[curGame.currentTrick.start], socket)
+  let startColor = getColor(curGame.currentTrick[curGame.currentTrick.start], socket)
   if (getColor(curGame.users[socket.userId].cards[cardId], socket) != startColor) 
     for (let i = 0; i < curGame.users[socket.userId].cards.length; i++)
       if (getColor(curGame.users[socket.userId].cards[i], socket) == startColor)
@@ -524,7 +523,7 @@ io.on('connection', (socket) => {
         //type -1 not set (not started)  0 normal  1 solo or something
     }
 
-    cards = giveCards(games.get(game_id).users)
+    let cards = giveCards(games.get(game_id).users)
 
 
     //if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
@@ -532,7 +531,7 @@ io.on('connection', (socket) => {
     //if (socket.userId == 1) cards = [[1,0],[1,0],[0,0],[0,0],[0,0],[0,0],[2,0],[2,4],[3,4],[3,4],[1,1],[1,1]]
     //if (socket.userId == 1) cards = [[2,1],[3,1],[3,1],[2,1],[1,2],[1,2],[2,2],[2,2],[3,2],[3,2],[0,1],[0,1]]
 
-    party = Number(cards.some(subArray => {
+    let party = Number(cards.some(subArray => {
       return subArray[0] === 3 && subArray[1] === 4;
     }))
 
@@ -556,7 +555,7 @@ io.on('connection', (socket) => {
       return false
     }
     if (isValid(card, socket)) {
-      game = games.get(socket.game_id)
+      let game = games.get(socket.game_id)
       game.currentTrick[socket.userId] = game.users[socket.userId].cards[card]
       io.to(socket.game_id).emit('placed_card', { userId: socket.userId, card: game.users[socket.userId].cards[card], currentTrick: game.currentTrick});
       let cardValue = game.users[socket.userId].cards[card]
@@ -766,7 +765,7 @@ io.on('connection', (socket) => {
             games.get(socket.game_id).users[socket.userId].cards[games.get(socket.game_id).users[socket.userId].armut_cards[j]] = tmp
           }
           for (let i = 0; i<2; i++) {
-            armUser = [games.get(socket.game_id).users[socket.userId], user][i]
+            let armUser = [games.get(socket.game_id).users[socket.userId], user][i]
             armUser.cards.sort((a, b) => {
               //1: a is higher, -1: b is higher
               if (isTrump(a,null,ignOdl=true)) {
@@ -827,12 +826,11 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     //maybe add logic for removing from game? but they cant reconnect so idk
-    /*if (games.get(socket.game_id)) {
+    if (games.get(socket.game_id) && games.get(socket.game_id).users[socket.userId] && games.get(socket.game_id).users[socket.userId].socketId == socket.id) { //was buggy before
       io.to(socket.game_id).emit("someone_disconnected", socket.userId)
       socket.rooms.delete(socket.game_id)
       games.delete(socket.game_id)
     }
-      was too buggy */
   });
 })
 
