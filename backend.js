@@ -356,7 +356,7 @@ function endGame(socket) {
     results[1].points["Solo"] = 1 //symbolic value actual value calculated by client
   }
 
-  if (game.settings.feigheit && game.type != 21 && !(game.settings.feigheitInSolo && game.type > 5)) { //feigheit
+  if (game.settings.feigheit && game.type != 21 && !(!game.settings.feigheitInSolo && game.type > 5)) { //feigheit
     if (results[0].eyes > announcementValues[highestAnnouncements[0] + 3 > announcementValues.length-1 ? 0 : highestAnnouncements[0] + 3 ]) {
       results[1].points["Feigheit"] = 1 //symbolic value actual value calculated by client
     }
