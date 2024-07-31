@@ -516,7 +516,11 @@ io.on('connection', (socket) => {
   socket.on('join_game', (game_id, username, settings) => {
     //if (socket.game_id) {socket.emit("error", "already in game"); return}
     if (game_id.length != 5 || username.length == 0) { socket.emit("error", "invalid name/id"); return }
-    if ((games.has(game_id) ? games.get(game_id).users.length : 0) >= 4) { socket.emit("error", "game is full"); return }
+    if ((games.has(game_id) ? games.get(game_id).users.length : 0) >= 4) { 
+      //socket.emit("error", "game is full");
+      socket.emit("full_game")
+      return 
+    }
 
     socket.join(game_id)
     socket.userId = games.has(game_id) ? games.get(game_id).users.length : 0;
@@ -553,6 +557,16 @@ io.on('connection', (socket) => {
     console.log("User "+username+" joined game "+game_id)
 
     if (games.get(game_id).users.length == 4) io.to(games.get(game_id).users[0].socketId).emit("u_call")
+  })
+
+  socket.on('spectate', (game_id) => {
+    if ((games.has(game_id) ? games.get(game_id).users.length : 0) < 4) { 
+      socket.emit("error", "game isn't full");
+      return 
+    }
+    socket.join(game_id)
+    socket.game_id = game_id
+    socket.emit("init_spec", censorUserData(games.get(game_id), -1))
   })
 
 

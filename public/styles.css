@@ -338,10 +338,26 @@ button:active {
   z-index: 15;
 }
 
-.defaultSettingsWarning button {
+.defaultSettingsWarning button, .fullGameMessage button {
   color: #ffffff;
   background-color: #000000;
   height: 2em;
+}
+
+.fullGameMessage {
+  display: none;
+  background: linear-gradient(180deg, #f1f1f1 0%, #ffffff 100%);
+  border-radius: 10px;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 10px 20px 0 #000000;
+  padding: 10px;
+  z-index: 20;
 }
 
 #current_trick {
@@ -360,7 +376,7 @@ button:active {
 
 .player-name {
   transition: 0.3s;
-  position: fixed;
+  position: absolute;
   color: white;
   font-size: 2vh;
   top: 6vh;

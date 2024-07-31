@@ -158,6 +158,13 @@
       <button onclick="localStorage.setItem('settings', JSON.stringify(defaultSettings));document.querySelector('.defaultSettingsWarning').style.display = 'none'">Ignore</button>
     </div>
 
+    <div class="fullGameMessage">
+      <h3>This game is full!</h3>
+      <h3>Do you want to spectate?</h3>
+      <button onclick="socket.emit('spectate', document.getElementById('game_id').value.toLowerCase()); document.querySelector('.fullGameMessage').style.display = 'none'">Yes</button>
+      <button onclick="document.querySelector('.fullGameMessage').style.display = 'none'; document.getElementById('join-game').style.display = 'block'">No</button>
+    </div>
+
     <div id="errorContainer" class="error-container">Error: </div>
     
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>

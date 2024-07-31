@@ -18,6 +18,7 @@ const colorSeq = [0,3,4,5,1,2];
 const secondaryTrumpColor = [0,0,0,0,0,0,0,1,2,3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1]
 let refreshInterval = setInterval(() => socket.emit('getPublicGames'), 5000);
 const cardsWorth = [0,10,11,2,3,4]
+let isSpectator = false
 
 var placeCardSFXs// = [new Audio("/sfx/front.mp3"), new Audio("/sfx/left.mp3"), new Audio("/sfx/back.mp3"), new Audio("/sfx/right.mp3")]
 var userSettings
@@ -114,6 +115,7 @@ socket.on("init", (data) => {
     ownUserId = data.users.length-1
     ownCards = data.users[ownUserId].cards
     curSettings = data.settings;
+    users = data.users
     let oedel = 0
     let pigs = 0
     let superPigs = 0
@@ -126,7 +128,7 @@ socket.on("init", (data) => {
     if (superPigs == 2 && curSettings.superpigs) special_cards.push(1)
     if (pigs == 2) special_cards.push(0)
     startGame(data)
-    currentTrick = {start: 0}
+    currentTrick = data.currentTrick
     Object.entries(curSettings).forEach((setting) => {
         document.getElementById(setting[0]).checked = setting[1]
     })
@@ -136,6 +138,32 @@ socket.on("init", (data) => {
     }, 1000)
     clearInterval(refreshInterval)
 })
+
+socket.on("init_spec", (data) => {
+    isSpectator = true
+    ownUserId = -4
+    curSettings = data.settings;
+    users = data.users
+    startGame(data)
+    currentTrick = data.currentTrick
+    let i
+    for (i = currentTrick.start; i < currentTrick.start+Object.keys(currentTrick).length-1; i++) {
+        document.getElementById("current_trick").innerHTML += '<img class="trickCard" src="/cards/'+currentTrick[i%4][0].toString()+'-'+currentTrick[i%4][1].toString()+'.svg" style="--i:'+(4-ownUserId+i%4)+'" draggable="false">'
+    }
+    getPlayerElement(i).className = 'their-turn'
+    for (let j = 0; j < users.length; j++)
+        for (let k = 0; k<users[j].tricks; k++) appendCardToTrick(getPlayerElement(j))
+
+    Object.entries(curSettings).forEach((setting) => {
+        document.getElementById(setting[0]).checked = setting[1]
+    })
+    document.getElementById("showSettings").style.display = "block"
+    setTimeout(() => {
+        document.getElementById("showSettings").style.maxHeight = "1.9em"
+    }, 1000)
+    clearInterval(refreshInterval)
+})
+
 lastTrick = document.getElementsByClassName("lastTrick")[0]
 document.addEventListener("mousemove", function(e) {
     lastTrick.style.left = ((e.clientX)+50)+"px"
@@ -147,6 +175,11 @@ document.getElementById("game_id").addEventListener('keypress', function(event) 
 
 socket.on("u_call", () => {
     showCallMenu()
+})
+
+socket.on("full_game", () => {
+    document.querySelector('.fullGameMessage').style.display = 'block'
+    clearTimeout(joinTimeout)
 })
 
 function showCallMenu() {
@@ -188,6 +221,7 @@ socket.on("change_party", (party) => {
     users[ownUserId].party = party
 })
 socket.on("allow_announcements", () => {
+    if (isSpectator) return
     updateAnnouncement()
     startAnnouncementsCards = ownCards.length
 })
@@ -269,7 +303,6 @@ function startGame(data) {
     const gameContainer = document.getElementsByClassName("game-container")[0];
     gameContainer.style.width = '100%';
     gameContainer.style.height = '100%';
-    users = data.users
     renderCardsforAll()
 }
 
