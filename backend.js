@@ -166,20 +166,27 @@ function getHighestCard(cards, socket) {
 }
 
 function censorUserData(odata, UserId) {
-  let data = JSON.parse(JSON.stringify(odata))
-  data.users.forEach(user => {
-    if (user.userId != UserId) {
-      user.cards = user.cards.length
-      user.party = -1
+  let ndata = {}
+  ndata.settings = odata.settings
+  ndata.currentTrick = odata.currentTrick
+
+  ndata.users = []
+  odata.users.forEach(user => {
+    ndata.users.push({})
+
+    ndata.users[user.userId].username = user.username
+    ndata.users[user.userId].userId = user.userId
+    ndata.users[user.userId].tricks = user.tricks.length
+    if (user.userId == UserId) {
+      ndata.users[user.userId].cards = user.cards
+      ndata.users[user.userId].party = user.party
+    } else {
+      ndata.users[user.userId].cards = user.cards.length
+      ndata.users[user.userId].party = -1
     }
-    delete user.socketId
-    user.tricks = user.tricks.length
-    user.points = -1
-    user.special_cards = -1
-    user.called = -1
-    user.armut_cards = []
+    
   });
-  return data;
+  return ndata
 }
 
 function addPoint(points, point_name, val=1) {

@@ -126,7 +126,7 @@ socket.on("init", (data) => {
     if (superPigs == 2 && curSettings.superpigs) special_cards.push(1)
     if (pigs == 2) special_cards.push(0)
     startGame(data)
-    currentTrick = data.currentTrick
+    currentTrick = {start: 0}
     Object.entries(curSettings).forEach((setting) => {
         document.getElementById(setting[0]).checked = setting[1]
     })
@@ -552,7 +552,7 @@ function renderCardsfor(userid) {
         for (let j = 0; j<userCards;j++) {
             elem.innerHTML += '<img class="card" src="/cards/back.svg" style="--i:'+(j-(Math.ceil(userCards/2)-1))+'" draggable="false">'
         }
-        getPlayerElement(userid).innerHTML += `<p class="player-name" ${admins.includes(users[userid].username) ? 'class="admin"' : ''}>${users[userid].username}</p>`;
+        getPlayerElement(userid).innerHTML += `<p class="player-name${admins.includes(users[userid].username) ? ' admin' : ''}">${users[userid].username}</p>`;
     }
 }
 
