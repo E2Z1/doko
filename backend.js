@@ -529,7 +529,7 @@ io.on('connection', (socket) => {
     //if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
     //if (socket.userId == 0) cards = [[1,2],[1,2],[0,1],[0,1],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
     //if (socket.userId == 1) cards = [[1,0],[1,0],[0,0],[0,0],[0,0],[0,0],[2,0],[2,4],[3,4],[3,4],[1,1],[1,1]]
-    //if (socket.userId == 1) cards = [[2,1],[3,1],[3,1],[2,1],[1,2],[1,2],[2,2],[2,2],[3,2],[3,2],[0,1],[0,1]]
+    if (socket.userId == 1) cards = [[2,1],[3,1],[3,1],[2,1],[1,2],[1,2],[2,2],[2,2],[3,2],[3,2],[0,1],[0,1]]
 
     let party = Number(cards.some(subArray => {
       return subArray[0] === 3 && subArray[1] === 4;
@@ -720,6 +720,10 @@ io.on('connection', (socket) => {
       socket.emit("error", "armut was not called")
       return false
     }
+    if (games.get(socket.game_id).currentTrick.start != socket.userId) {
+      socket.emit("error", "its not your turn")
+      return false
+    }
     io.to(socket.game_id).emit('call', {caller: socket.userId, msg: ["Ablehnen", "Mitnehmen"][call], type: -1})
     if (call) {
       games.get(socket.game_id).users.forEach((user) => {
@@ -734,10 +738,12 @@ io.on('connection', (socket) => {
       })
       //io.to(socket.game_id).emit("actual_game_start")
       //io.to(socket.game_id).emit("allow_announcements")
+      games.get(socket.game_id).currentTrick.start = -1
       return
     } else {
       let next = socket.userId+1
       if (next <= 3 && games.get(socket.game_id).users[next].called == 3) next += 1
+      games.get(socket.game_id).currentTrick.start = next
       if (next > 3) {
         games.get(socket.game_id).users.forEach((user) => {
           if (user.called == 3) {
@@ -752,8 +758,12 @@ io.on('connection', (socket) => {
   })
 
   socket.on("giveArmutCards", (armutcards) => {
+    if (!games.get(socket.game_id)) {
+      socket.emit("error", "game doesnt exist")
+      return false
+    }
     if (games.get(socket.game_id).users[socket.userId].party == 1 && games.get(socket.game_id).type == 3) {
-      if (armut_cards.length != 3) {
+      if (armutcards.length != 3) {
         socket.emit("error", "not three cards")
       }
       games.get(socket.game_id).users[socket.userId].armut_cards = armutcards
@@ -795,6 +805,7 @@ io.on('connection', (socket) => {
           socket.emit("swapArmutCards", games.get(socket.game_id).users[socket.userId].cards)
           io.to(user.socketId).emit("swapArmutCards", user.cards)
           games.get(socket.game_id).type = 1
+          games.get(socket.game_id).currentTrick.start = 0
           io.to(socket.game_id).emit("actual_game_start")
           io.to(socket.game_id).emit("allow_announcements")
           return
