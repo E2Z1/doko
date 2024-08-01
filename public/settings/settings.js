@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", function(e) {
         redBlackSolo: false,
         throwOverSolo: false,
         feigheitInSolo: false,
+        uncalling: true,
     }
     if (!localStorage.getItem("settings") || Object.keys(JSON.parse(localStorage.getItem("settings"))).length != Object.keys(defaultSettings).length) {
         //standard preferences by me

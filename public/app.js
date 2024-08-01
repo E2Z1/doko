@@ -40,6 +40,7 @@ const defaultSettings = {
     redBlackSolo: false,
     throwOverSolo: false,
     feigheitInSolo: false,
+    uncalling: true,
 }
 
 function playSound(sound) {
@@ -213,7 +214,7 @@ socket.on("u_call_armut", () => {
 })
 
 socket.on("actual_game_start", () => {
-    document.getElementById("showSettings").style.display = "none"
+    if (!isSpectator) document.getElementById("showSettings").style.display = "none"
     getPlayerElement(currentTrick.start).className = 'their-turn'
 })
 
@@ -419,15 +420,19 @@ function getSpecialCards() {
     let pigs = 0
     let superPigs = 0
     let oedel = 0
+    special_cards = []
+    if (gameType > 11 && gameType != 21) {
+        return  //nur in unreinen soli gibt es special cards
+    }
     ownCards.forEach((card) => {
         if (equals2D(card, getPigCard())) pigs++
         else if (equals2D(card, getSuperPigCard())) superPigs++
         else if (equals2D(card, getOdelCard())) oedel++
     })
     if (oedel == 2 && curSettings.odel) {
+        special_cards.push(2)
         ownCards.splice(ownCards.findIndex(arr => equals2D(arr, getOdelCard())), 1)
         ownCards.splice(ownCards.findIndex(arr => equals2D(arr, getOdelCard())), 1)
-        if (gameType < 12) { //heart 10s dont exist in pure soli
         let h10Index = ownCards.findIndex(arr => arr[0] == 1 && arr[1] == 1)
         if (h10Index == -1) {
             ownCards.splice(ownCards.length, 0, getOdelCard())
@@ -439,16 +444,18 @@ function getSpecialCards() {
             ownCards.splice(ownCards.length-2, 0, getOdelCard())
             ownCards.splice(ownCards.length-2, 0, getOdelCard())
         }
-        }
+        
     }
 
     if (pigs == 2) {
+        special_cards.push(0)
         ownCards.splice(ownCards.findIndex(arr => equals2D(arr, getPigCard())), 1)
         ownCards.splice(ownCards.findIndex(arr => equals2D(arr, getPigCard())), 1)
         ownCards.splice(ownCards.length, 0, getPigCard())
         ownCards.splice(ownCards.length, 0, getPigCard())
     }
     if (superPigs == 2 && pigs == 2 && curSettings.superpigs) {
+        special_cards.push(1)
         ownCards.splice(ownCards.findIndex(arr => equals2D(arr, getSuperPigCard())), 1)
         ownCards.splice(ownCards.findIndex(arr => equals2D(arr, getSuperPigCard())), 1)
         ownCards.splice(ownCards.length, 0, getSuperPigCard())
@@ -596,6 +603,7 @@ function renderCardsforAll() {
 }
 
 function placeCard(i) {
+    document.getElementById("call").style.display = "none"
     if (document.querySelector(".armut-give").style.display == "flex" && document.querySelector(".armut-cards").childElementCount < 3) {
         document.querySelector(".armut-cards").innerHTML += '<img onclick="removeArmutCard('+document.querySelector(".armut-cards").childElementCount+')" src="/cards/'+ownCards[i][0]+'-'+ownCards[i][1]+'.svg" draggable="false">'
         armutCards.push(i)
@@ -605,8 +613,28 @@ function placeCard(i) {
         }))
         return
     }
-    if (isValid(i)) socket.emit('place_card', i)
+    if (isValid(i)) {
+        if (curSettings.uncalling && ((special_cards.includes(2) && equals2D(ownCards[i], getOdelCard())) ||
+        (special_cards.includes(0) && equals2D(ownCards[i], getPigCard())) ||
+        (special_cards.includes(1) && equals2D(ownCards[i], getSuperPigCard())))) {
+            document.getElementById("call").innerHTML = `<a onclick="socket.emit('place_card', ${i}); document.getElementById('call').style.display = 'none'">Ansagen</a><a onclick="uncall(${i})">Absagen</a>`
+            document.getElementById("call").style.display = "block"
+        } else {
+           socket.emit('place_card', i)
+        }
+    }
     else showError("invalid move")
+}
+
+function uncall(i) {
+    let curSpecialCard;
+    if (equals2D(ownCards[i], getPigCard())) curSpecialCard = 0
+    else if (equals2D(ownCards[i], getSuperPigCard())) curSpecialCard = 1
+    else if (equals2D(ownCards[i], getOdelCard())) curSpecialCard = 2
+
+    special_cards = special_cards.filter(x => x != curSpecialCard)
+    document.getElementById('call').style.display = 'none'
+    socket.emit('place_card', i, curSpecialCard)
 }
 
 function removeArmutCard(i) {

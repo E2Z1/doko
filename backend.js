@@ -570,10 +570,13 @@ io.on('connection', (socket) => {
   })
 
 
-  socket.on('place_card', (card) => {
+  socket.on('place_card', (card, curSpecialCard = -1) => {
     if (!games.get(socket.game_id)) {
       socket.emit("error", "game doesnt exist")
       return false
+    }
+    if (curSpecialCard != -1 && games.get(socket.game_id).settings.uncalling) {
+      games.get(socket.game_id).users[socket.userId].special_cards = games.get(socket.game_id).users[socket.userId].special_cards.filter(x => x != curSpecialCard)
     }
     if (isValid(card, socket)) {
       let game = games.get(socket.game_id)
