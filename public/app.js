@@ -19,6 +19,7 @@ const secondaryTrumpColor = [0,0,0,0,0,0,0,1,2,3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-
 let refreshInterval = setInterval(() => socket.emit('getPublicGames'), 5000);
 const cardsWorth = [0,10,11,2,3,4]
 let isSpectator = false
+let called_special_cards = []
 
 var placeCardSFXs// = [new Audio("/sfx/front.mp3"), new Audio("/sfx/left.mp3"), new Audio("/sfx/back.mp3"), new Audio("/sfx/right.mp3")]
 var userSettings
@@ -499,12 +500,12 @@ socket.on('call', (data) => {
             //1: a is higher, -1: b is higher
             if (isTrump(a)) {
                 if (!isTrump(b)) return 1;
-                if (a[0] === secondaryTrumpColor[gameType] && !(a[1] == 3 || a[1] == 4)) { // diamond
+                if (a[0] === secondaryTrumpColor[gameType] && !(a[1] == 3 || a[1] == 4 || equals2D(a, [1,1]))) { // diamond
                     if (b[0] !== 0 || (b[1] == 3 || b[1] == 4)) return -1;
                     if (colorSeq.indexOf(b[1]) > colorSeq.indexOf(a[1])) return -1; else return 1;
                 } else { // not diamond
                     if (data.type <= 11) {  //unreine soli
-                        if (b[0] === secondaryTrumpColor[data.type] && !(b[1] == 3 || b[1] == 4)) return 1;
+                        if (b[0] === secondaryTrumpColor[data.type] && !(b[1] == 3 || b[1] == 4 || equals2D(b, [1,1]))) return 1;
                         if (b[0] === 1 && b[1] === 1) return -1;
                         if (a[0] === 1 && a[1] === 1) return 1;
 
@@ -613,28 +614,66 @@ function placeCard(i) {
         }))
         return
     }
-    if (isValid(i)) {
-        if (curSettings.uncalling && ((special_cards.includes(2) && equals2D(ownCards[i], getOdelCard())) ||
-        (special_cards.includes(0) && equals2D(ownCards[i], getPigCard())) ||
-        (special_cards.includes(1) && equals2D(ownCards[i], getSuperPigCard())))) {
-            document.getElementById("call").innerHTML = `<a onclick="socket.emit('place_card', ${i}); document.getElementById('call').style.display = 'none'">Ansagen</a><a onclick="uncall(${i})">Absagen</a>`
+    if (curSettings.uncalling && ((special_cards.includes(2) && !called_special_cards.includes(2) && equals2D(ownCards[i], getOdelCard())) ||
+        (special_cards.includes(0) && !called_special_cards.includes(0) && equals2D(ownCards[i], getPigCard())) ||
+        (special_cards.includes(1) && !called_special_cards.includes(1) && equals2D(ownCards[i], getSuperPigCard())))) {
+            document.getElementById("call").innerHTML = `<a onclick="callSpecialCard(${i})">Ansagen</a><a onclick="uncall(${i})">Absagen</a>`
             document.getElementById("call").style.display = "block"
-        } else {
-           socket.emit('place_card', i)
+            return
+    }
+    if (isValid(i)) {
+        if (curSettings.uncalling && currentTrick.start != ownUserId && !isTrump(currentTrick[currentTrick.start])) {    //looking if indirect call of special card   fck gotta add a lot of stuff    isTrump: first odel etc not defined
+            let startColor = getColor(currentTrick[currentTrick.start])
+            if (!curSettings.shiftSpecialCardsSolo && gameType > 6 && gameType < 12) {
+                if (special_cards.includes(0) && !called_special_cards.includes(0) && startColor == getPigCard()[0] && howManyCardsAreThereFromThisColor(startColor) == 0) called_special_cards.push(0)
+                if (special_cards.includes(1) && !called_special_cards.includes(1) && startColor == getSuperPigCard()[0] && howManyCardsAreThereFromThisColor(startColor) == 0) called_special_cards.push(1)
+            }
+            if (special_cards.includes(2) && !called_special_cards.includes(2) && startColor == getOdelCard()[0] && howManyCardsAreThereFromThisColor(startColor) == 0) {   //if odel would be placed / uncalled the code wouldnt be reach
+                called_special_cards.push(2)
+            }
+
         }
+
+        socket.emit('place_card', i)
+    
     }
     else showError("invalid move")
 }
 
-function uncall(i) {
-    let curSpecialCard;
-    if (equals2D(ownCards[i], getPigCard())) curSpecialCard = 0
-    else if (equals2D(ownCards[i], getSuperPigCard())) curSpecialCard = 1
-    else if (equals2D(ownCards[i], getOdelCard())) curSpecialCard = 2
+function howManyCardsAreThereFromThisColor(color) {
+    let count = 0
+    for (let i = 0; i < ownCards.length; i++)
+        if (getColor(ownCards[i]) == color)
+          count++
+    return count
+}
 
-    special_cards = special_cards.filter(x => x != curSpecialCard)
+function callSpecialCard(i) {
     document.getElementById('call').style.display = 'none'
-    socket.emit('place_card', i, curSpecialCard)
+    if (isValid(i)) {
+        socket.emit('place_card', i)
+        called_special_cards.push(getSpecialCardFromIndex(i))
+        if (getSpecialCardFromIndex(i) == 0) called_special_cards.push(1)
+    } else showError("invalid move")
+}
+
+function getSpecialCardFromIndex(i) {
+    if (equals2D(ownCards[i], getPigCard())) return 0
+    else if (equals2D(ownCards[i], getSuperPigCard())) return 1
+    else if (equals2D(ownCards[i], getOdelCard())) return 2
+    return -1
+}
+
+function uncall(i) {
+    document.getElementById('call').style.display = 'none'
+    let curSpecialCard = getSpecialCardFromIndex(i)
+    special_cards = special_cards.filter(x => x != curSpecialCard)
+    if (isValid(i)) {               //valid check needs to be after change
+        socket.emit('place_card', i, curSpecialCard)
+    } else {
+        socket.emit("uncall", curSpecialCard)   //becomes buggy else
+        showError("invalid move")
+    }
 }
 
 function removeArmutCard(i) {
@@ -766,7 +805,7 @@ function getColor(card) {
     return card[0]
 }
 
-function isValid(cardId) {    //a bit of a pain ngl
+function isValid(cardId) {    //a bit of a pain ngl     retrospektiv voll entspannt
     if (inAnimation) return false;
     if (users.length != 4) return false;
     if (!document.getElementById("player0").classList.contains("their-turn")) return false;
@@ -775,7 +814,7 @@ function isValid(cardId) {    //a bit of a pain ngl
 
     //definitly not copied from backend
     if (currentTrick.start == ownUserId) return true //the first player can do whatever they want
-    startColor = getColor(currentTrick[currentTrick.start])
+    let startColor = getColor(currentTrick[currentTrick.start])
     if (getColor(ownCards[cardId]) != startColor) 
       for (let i = 0; i < ownCards.length; i++)
         if (getColor(ownCards[i]) == startColor)
