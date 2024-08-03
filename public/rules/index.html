@@ -20,6 +20,8 @@
       </nav>
     </div>
     <div class="rules">
+      <h1>Die Doppelkopf-Regeln</h1>
+      <p>Auf dieser Webseite kann man die Regeln mit denen man Spielt teils einstellen. Hier wird davon ausgegangen, dass alle an sind. <a href="#zuSettings">Mehr unten</a></p>
       <h1>Das Doppelkopfblatt</h1>
       <p>Es gibt 4 Farben (Karo, Herz, Pik und Kreuz) mit je zwei Assen (Zählwert 11), zwei Zehnen (Zählwert 10), zwei Königen (Zählwert 4),
         zwei Damen (Zählwert 3), zwei Buben (Zählwert 2) und zwei Neunen (Zählwert 0). Insgesamt gibt es 240 Punkte.
@@ -35,8 +37,14 @@
       <p>Jede Runde spielt jeder Spieler eine Karten im Uhrzeigersinn und die höchste Karte gewinnt.</p>
       <h2>Auswertung</h2>
       <p>Das Ziel ist es, 120 Augen mit dem Mitspieler im Laufe des Spiels zu erhalten bzw. 121 Punkte als Re-Partei. Dafür erhält man einen Punkt ("Gewonnen").
-        War man teil der Kontra-Partei, erhält man zusätzlich den Punkt "Gegen die Alten". Alle Sonderpunkte werden dieser Punktzahl hinzuaddiert
+        War man Teil der Kontra-Partei, erhält man zusätzlich den Punkt "Gegen die Alten". Alle Sonderpunkte werden dieser Punktzahl hinzuaddiert
         oder abgezogen, wenn die gegenerische Partei diese erzielt hat. Die gegnerische Partei erhält die Punkte mit umgekehrtem Vorzeichen.
+      </p>
+      <p>Erreichet die gegnerische Partei weniger als 90, 60, 30 oder genau null Punkte, gibt es je einen Sonderpunkt: Keine 9, Keine 6, Keine 3 oder Schwarz.
+        Für jede Ansage gibt es einen weiteren Punkt.
+      </p>
+      <p id="zuFeigheit">Wird mit 60 Punkten mehr gewonnen als angesagt, d.h. mit keine 6 ohne etwas angesagt zu haben, keine 3 mit Re und Schwarz mit keine 9, gibt es
+        Feigheit. Dann erhält die gegnerische Partei die Punkte die man sonst gewonnen hätte.
       </p>
 
 
@@ -47,7 +55,7 @@
       <h2>Gesund & Vorbehalt</h2>
       <p>"Gesund" sagt man an, wenn man keinen Vorbehalt hat.</p>
       <p>Bei den restlichen Ansagen sagt man nur "Vorbehalt" an und der höchste Vorbehalt wird vom Ansager angesagt ("getauft"). 
-        Haben mehrere Spieler die gleiche Ansage, so gilt die des ersten.
+        Haben mehrere Spieler die gleiche Ansage, so gilt die des Ersten.
         Das Spiel läuft dann unter diesem Vorbehalt. Die Reihenfolge der Vorbehalte ist die Folgende:
       </p>
       <ol>
@@ -101,7 +109,7 @@
       <p>Ein Karo-Ass wird als ein Fuchs bezeichnet. Wird dieser von der gegenerischen Partei gestochen,
         erhält diese je einen Sonderpunkt (Fuchs gefangen).
       </p>
-      <h2>Klabautermann</h2>
+      <h2 id="zuKlabautermann">Klabautermann</h2>
       <p>Wird ein Pik-König von einer Pik-Dame gestochen, die den Stich gewinnt, erhält die Partei, die
         die Pik-Dame gelegt hat, einen Sonderpunkt. Wird der Pik-König nach der Pik-Dame gelegt, so zählt
         das nicht mehr als ein Klabautermann. Die Partei erhält auch einen Punkt, wenn der Pik-König vom
@@ -116,10 +124,19 @@
       <p>Enthält ein Stich 40 oder mehr Punkte wird dieser als Doppelkopf bezeichnet. Die Partei, die diesen
         Stich gewinnt, erhält einen Sonderpunkt.
       </p>
-      <h2>Koppeldopf (Neunerstich)</h2>
+      <h2 id="zuKoppeldopf">Koppeldopf (Neunerstich)</h2>
       <p>Enthält ein Stich 0 Punkte wird dieser als Koppeldopf (oder Neunerstich) bezeichnet. Die Partei, die
         diesen Stich gewinnt, erhält einen Sonderpunkt.
       </p>
+
+      <h1>Sonderkarten</h1>
+      <h2>Schweine</h2>
+      <p>Wenn jemand beide Karo-Asse besitzt, werden diese Schweine genannt und sind der höchste Trumpf.</p>
+      <h2 id="zuSuperPigs">Super-Schweine</h2>
+      <p>Wenn die Schweine bereits angesagt wurden und jemand beide Karo-Neunen besitzt, werden diese Super-Schweine genannt und sind der höchste Trumpf.</p>
+      <h2 id="zuOdel">Ödel Dödel</h2>
+      <p>Wenn jemand beide Herz-Könige besitzt, werden diese Ödel Dödel genannt, sind Trumpf und dabei höher als die Kreuz-Damen, aber niedriger
+        als die Herz-Zehnen.</p>
 
 
       <h1 id="zuSeite">Zu dieser Webseite</h1>
@@ -127,6 +144,20 @@
       <p>Der Spieler, der rauskommt, ist der, der das Spiel erstellt hat.</p>
       <p>Beim Schmeißen, wird das Spiel gelöscht und muss neu erstellt werden.</p>
       <p>Es existieren keine Bockrunden.</p>
+      <h2 id="zuSettings">Game Settings</h2>
+      <p>Ist "Public" eingeschaltet, so wird das Spiel rechts auf der Play-Seite angezeigt, solange es nicht voll ist.</p>
+      <p>Ist "Super-Schweine" eingeschaltet, so existieren die <a href="#zuSuperPigs">Super-Schweine</a>.</p>
+      <p>Ist "Ödel Dödel" eingeschaltet, so existieren die <a href="#zuOdel">Ödel Dödel</a>.</p>
+      <p>Ist "Klabautermann" eingeschaltet, so existiert der <a href="#zuKlabautermann">Sonderpunkt Klabautermann</a>.</p>
+      <p>Ist "Feigheit" eingeschaltet, so existiert die <a href="#zuFeigheit">Regel Feigheit</a>.</p>
+      <p>Ist "Koppeldopf" eingeschaltet, so existiert der <a href="#zuKoppeldopf">Sonderpunkt Koppeldopf (Neunerstich)</a>.</p>
+      <p>Ist "Solist kommt raus" eingeschaltet, kommt in Soli, der raus, der das Solo angesagt hat.</p>
+      <p>Ist "Sonderkarten in Soli anpassen" eingeschaltet, werden die Karten für die Sonderkarten in unreinen Solo angepasst.
+        Dabei wird nur die Farbe angepasst. Schweine und Super-Schweine sind dann die Asse und Neunen</p>
+      <p>Ist "Schmeißen bei zu vielen Vollen" eingeschaltet,</p>
+      <p>Ist "Schmeißen über Solo" eingeschaltet,</p>
+      <p>Ist "Feigheit in Soli" eingeschaltet,</p>
+      <p>Ist "Sonderkarten absagen" eingeschaltet,</p>
       
     </div>
   </body>
