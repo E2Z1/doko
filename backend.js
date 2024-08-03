@@ -490,20 +490,32 @@ function getPublicGames() {
 
 function isValid(cardId, socket) {
   const curGame = games.get(socket.game_id)
+  const curUser = curGame.users[socket.userId]
   if (Object.keys(curGame.users).length != 4 || curGame.type == -1) return false;         //not started yet
   if (!(curGame.currentTrick[(socket.userId+3)%4] || curGame.currentTrick.start == socket.userId)) return false;    //their turn
   if (curGame.currentTrick[socket.userId]) return false;      //already laid card
-  if (!curGame.users[socket.userId].cards[cardId]) return false;  //card doesnt exist
+  if (!curUser.cards[cardId]) return false;  //card doesnt exist
 
   //actual rules
   if (curGame.currentTrick.start == socket.userId) return true //the first player can do whatever they want
   let startColor = getColor(curGame.currentTrick[curGame.currentTrick.start], socket)
-  if (getColor(curGame.users[socket.userId].cards[cardId], socket) != startColor) 
-    for (let i = 0; i < curGame.users[socket.userId].cards.length; i++)
-      if (getColor(curGame.users[socket.userId].cards[i], socket) == startColor)
+  if (getColor(curUser.cards[cardId], socket) != startColor) 
+    for (let i = 0; i < curUser.cards.length; i++)
+      if (getColor(curUser.cards[i], socket) == startColor && !(curGame.settings.uncalling && ((curUser.special_cards.includes(2) && !curUser.called_special_cards.includes(2) && equals2D(curUser.cards[i], getOdelCard(socket))) ||
+        (curUser.special_cards.includes(0) && !curUser.called_special_cards.includes(0) && equals2D(curUser.cards[i], getPigCard(socket))) ||
+        (curUser.special_cards.includes(1) && !curUser.called_special_cards.includes(1) && equals2D(curUser.cards[i], getSuperPigCard(socket))))))
         return false;
 
   return true
+}
+
+function howManyCardsAreThereFromThisColor(color, socket) {
+  let count = 0
+  const cards = games.get(socket.game_id).users[socket.userId].cards
+  for (let i = 0; i < cards.length; i++)
+      if (getColor(cards[i]) == color)
+        count++
+  return count
 }
 
 
@@ -537,10 +549,10 @@ io.on('connection', (socket) => {
     let cards = giveCards(games.get(game_id).users)
 
 
-    if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[1,4],[3,4],[1,1],[1,1]]
+    //if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[1,4],[3,4],[1,1],[1,1]]
     //if (socket.userId == 0) cards = [[1,2],[1,2],[0,1],[0,1],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
     //if (socket.userId == 1) cards = [[1,0],[1,0],[0,0],[0,0],[0,0],[0,0],[2,0],[2,4],[3,4],[3,4],[1,1],[1,1]]
-    //if (socket.userId == 1) cards = [[2,1],[3,1],[3,1],[2,1],[1,2],[1,2],[2,2],[2,2],[3,2],[3,2],[0,1],[0,1]]
+    if (socket.userId == 1) cards = [[2,1],[3,1],[3,1],[2,1],[1,2],[1,2],[2,2],[2,2],[3,2],[3,4],[1,5],[1,5]]
 
     let party = Number(cards.some(subArray => {
       return subArray[0] === 3 && subArray[1] === 4;
@@ -574,8 +586,9 @@ io.on('connection', (socket) => {
       socket.emit("error", "game doesnt exist")
       return false
     }
-    if (curSpecialCard != -1 && games.get(socket.game_id).settings.uncalling) {
+    if (curSpecialCard != -1 && games.get(socket.game_id).settings.uncalling && !games.get(socket.game_id).users[socket.userId].called_special_cards.includes(curSpecialCard)) {
       games.get(socket.game_id).users[socket.userId].special_cards = games.get(socket.game_id).users[socket.userId].special_cards.filter(x => x != curSpecialCard)
+      if (curSpecialCard == 0) games.get(socket.game_id).users[socket.userId].special_cards = games.get(socket.game_id).users[socket.userId].special_cards.filter(x => x != 1)
     }
   })
 
@@ -584,29 +597,48 @@ io.on('connection', (socket) => {
       socket.emit("error", "game doesnt exist")
       return false
     }
-    if (curSpecialCard != -1 && games.get(socket.game_id).settings.uncalling) {
+    if (curSpecialCard != -1 && games.get(socket.game_id).settings.uncalling && !games.get(socket.game_id).users[socket.userId].called_special_cards.includes(curSpecialCard)) {
       games.get(socket.game_id).users[socket.userId].special_cards = games.get(socket.game_id).users[socket.userId].special_cards.filter(x => x != curSpecialCard)
+      if (curSpecialCard == 0) games.get(socket.game_id).users[socket.userId].special_cards = games.get(socket.game_id).users[socket.userId].special_cards.filter(x => x != 1)
     }
     if (isValid(card, socket)) {
       let game = games.get(socket.game_id)
       game.currentTrick[socket.userId] = game.users[socket.userId].cards[card]
       io.to(socket.game_id).emit('placed_card', { userId: socket.userId, card: game.users[socket.userId].cards[card], currentTrick: game.currentTrick});
       let cardValue = game.users[socket.userId].cards[card]
+      let startColor;
+      if (game.settings.uncalling && game.currentTrick.start != socket.userId && (startColor = getColor(game.currentTrick[game.currentTrick.start], socket)) != getColor(cardValue, socket)) {    //looking if indirect call of special card   fck gotta add a lot of stuff    isTrump: first odel etc not defined
+          if (startColor == 4) {
+            game.users[socket.userId].special_cards = []
+          } else {
+            if (!game.settings.shiftSpecialCardsSolo && game.type > 6 && game.type < 12) {
+              if (game.users[socket.userId].special_cards.includes(0) && !game.users[socket.userId].called_special_cards.includes(0) && startColor == getPigCard(socket)[0] && howManyCardsAreThereFromThisColor(startColor, socket) == 0) game.users[socket.userId].called_special_cards.push(0)
+              if (game.users[socket.userId].special_cards.includes(1) && !game.users[socket.userId].called_special_cards.includes(1) && startColor == getSuperPigCard(socket)[0] && howManyCardsAreThereFromThisColor(startColor, socket) == 0) game.users[socket.userId].called_special_cards.push(1)
+            }
+            if (game.users[socket.userId].special_cards.includes(2) && !game.users[socket.userId].called_special_cards.includes(2) && startColor == getOdelCard(socket)[0] && howManyCardsAreThereFromThisColor(startColor, socket) == 0) {   //if odel would be placed / uncalled the code wouldnt be reach
+              game.users[socket.userId].called_special_cards.push(2)
+            }
+          }
+
+      }
       //check if special card
       if (equals2D(cardValue, getPigCard(socket))) {
         if (game.users[socket.userId].special_cards.includes(0)) {
           game.special_cards.push(0)
+          game.users[socket.userId].called_special_cards.push(0)
           io.to(socket.game_id).emit('special_card', {userId: socket.userId, card: "Schwein", cardId: 0})
           checkForSuperPigs(socket)
         }
       } else if (equals2D(cardValue, getSuperPigCard(socket))) {
         if (game.users[socket.userId].special_cards.includes(1)) {
           game.special_cards.push(1)
+          game.users[socket.userId].called_special_cards.push(1)
           io.to(socket.game_id).emit('special_card', {userId: socket.userId, card: "Super-Schwein", cardId: 1})
         }
       } else if (equals2D(cardValue, getOdelCard(socket))) {
         if (game.users[socket.userId].special_cards.includes(2)) {
           game.special_cards.push(2)
+          game.users[socket.userId].called_special_cards.push(2)
           io.to(socket.game_id).emit('special_card', {userId: socket.userId, card: "Ödel Dödel", cardId: 2})
         }
       }

@@ -319,6 +319,14 @@ button:active {
   outline: none;
 }
 
+.no-hover-card {
+  cursor: auto !important;
+}
+
+.no-hover-card:hover, .no-hover-card:focus-visible {
+  transform: rotate(calc(var(--i)*6deg)) translate(calc(var(--i)*9%), -5vh) !important;
+}
+
 .their-turn#player0 .card {
   max-height: 54vh;
   max-width: 43vw;

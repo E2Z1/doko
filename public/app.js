@@ -591,7 +591,7 @@ function renderCardsfor(userid) {
         let elem = getCardsElement(userid)
         elem.innerHTML = ''
         for (let j = 0; j<userCards;j++) {
-            elem.innerHTML += '<img class="card" src="/cards/back.svg" style="--i:'+(j-(Math.ceil(userCards/2)-1))+'" draggable="false">'
+            elem.innerHTML += '<img class="card no-hover-card" src="/cards/back.svg" style="--i:'+(j-(Math.ceil(userCards/2)-1))+'" draggable="false">' // no-hover-card for spectator
         }
         getPlayerElement(userid).innerHTML += `<p class="player-name${admins.includes(users[userid].username) ? ' admin' : ''}">${users[userid].username}</p>`;
     }
@@ -622,14 +622,18 @@ function placeCard(i) {
             return
     }
     if (isValid(i)) {
-        if (curSettings.uncalling && currentTrick.start != ownUserId && !isTrump(currentTrick[currentTrick.start])) {    //looking if indirect call of special card   fck gotta add a lot of stuff    isTrump: first odel etc not defined
-            let startColor = getColor(currentTrick[currentTrick.start])
-            if (!curSettings.shiftSpecialCardsSolo && gameType > 6 && gameType < 12) {
-                if (special_cards.includes(0) && !called_special_cards.includes(0) && startColor == getPigCard()[0] && howManyCardsAreThereFromThisColor(startColor) == 0) called_special_cards.push(0)
-                if (special_cards.includes(1) && !called_special_cards.includes(1) && startColor == getSuperPigCard()[0] && howManyCardsAreThereFromThisColor(startColor) == 0) called_special_cards.push(1)
-            }
-            if (special_cards.includes(2) && !called_special_cards.includes(2) && startColor == getOdelCard()[0] && howManyCardsAreThereFromThisColor(startColor) == 0) {   //if odel would be placed / uncalled the code wouldnt be reach
-                called_special_cards.push(2)
+        let startColor;
+        if (curSettings.uncalling && currentTrick.start != ownUserId && (startColor = getColor(currentTrick[currentTrick.start])) != getColor(ownCards[i])) {    //looking if indirect call of special card   fck gotta add a lot of stuff    isTrump: first odel etc not defined
+            if (startColor == 4) {
+                special_cards = []
+            } else {
+                if (!curSettings.shiftSpecialCardsSolo && gameType > 6 && gameType < 12) {
+                    if (special_cards.includes(0) && !called_special_cards.includes(0) && startColor == getPigCard()[0] && howManyCardsAreThereFromThisColor(startColor) == 0) called_special_cards.push(0)
+                    if (special_cards.includes(1) && !called_special_cards.includes(1) && startColor == getSuperPigCard()[0] && howManyCardsAreThereFromThisColor(startColor) == 0) called_special_cards.push(1)
+                }
+                if (special_cards.includes(2) && !called_special_cards.includes(2) && startColor == getOdelCard()[0] && howManyCardsAreThereFromThisColor(startColor) == 0) {   //if odel would be placed / uncalled the code wouldnt be reach
+                    called_special_cards.push(2)
+                }
             }
 
         }
@@ -668,6 +672,9 @@ function uncall(i) {
     document.getElementById('call').style.display = 'none'
     let curSpecialCard = getSpecialCardFromIndex(i)
     special_cards = special_cards.filter(x => x != curSpecialCard)
+    if (curSpecialCard == 0) {  //ohne schweine keine superschweine
+        special_cards = special_cards.filter(x => x != 1)
+    }
     if (isValid(i)) {               //valid check needs to be after change
         socket.emit('place_card', i, curSpecialCard)
     } else {
@@ -817,7 +824,9 @@ function isValid(cardId) {    //a bit of a pain ngl     retrospektiv voll entspa
     let startColor = getColor(currentTrick[currentTrick.start])
     if (getColor(ownCards[cardId]) != startColor) 
       for (let i = 0; i < ownCards.length; i++)
-        if (getColor(ownCards[i]) == startColor)
+        if (getColor(ownCards[i]) == startColor && !(curSettings.uncalling && ((special_cards.includes(2) && !called_special_cards.includes(2) && equals2D(ownCards[i], getOdelCard())) ||
+            (getPigCard()[0] != secondaryTrumpColor[gameType] && special_cards.includes(0) && !called_special_cards.includes(0) && equals2D(ownCards[i], getPigCard())) ||
+            (getSuperPigCard()[0] != secondaryTrumpColor[gameType] && special_cards.includes(1) && !called_special_cards.includes(1) && equals2D(ownCards[i], getSuperPigCard())))))
           return false;
 
     return true;
