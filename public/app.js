@@ -343,6 +343,7 @@ function getIndexOfCard(cards, searched) {
 socket.on('placed_card', (data) => cardPlaced(data))
 
 function cardPlaced(data) {
+    let nextPlayer
     if (inAnimation) {
         setTimeout(() => cardPlaced(data), 100)
         return
