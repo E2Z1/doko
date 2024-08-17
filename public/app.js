@@ -84,6 +84,14 @@ function joinGame() {
     }, 1000)
 }
 
+
+window.onbeforeunload = function (e) {
+    if (!localStorage.getItem("rj_data")) return
+    let rj_data = JSON.parse(localStorage.getItem("rj_data"))
+    rj_data.time = Date.now()
+    localStorage.setItem("rj_data", JSON.stringify(rj_data))
+}
+
 document.addEventListener("DOMContentLoaded", function(e) {
     document.getElementById('username').value = localStorage.getItem('username')
     document.getElementById('game_id').value = localStorage.getItem('game_id')
@@ -104,6 +112,23 @@ document.addEventListener("DOMContentLoaded", function(e) {
     if (!localStorage.getItem("settings")) {
         document.querySelector('.defaultSettingsWarning').style.display = "block"
     }
+
+    if (localStorage.getItem("rj_data")) {
+        const rj_data = JSON.parse(localStorage.getItem("rj_data"))
+        if (rj_data.time) {
+            if (rj_data.time+15000 > Date.now) {
+                localStorage.removeItem("rj_data")
+                return
+            } else {
+                setTimeout(() => {
+                    localStorage.removeItem("rj_data")
+                    document.querySelector('.rejoinMessage').style.display = "none"
+                }, rj_data.time+15000-Date.now())
+            }
+        }
+        document.querySelector('.rejoinMessage').style.display = "block"
+        document.querySelector('.rejoinMessage').querySelector("h3").innerText = `You left an active game (${rj_data.game_id})!`
+    }
 })
 
 function saveUserSettings() {
@@ -118,6 +143,11 @@ socket.on("init", (data) => {
     ownCards = data.users[ownUserId].cards
     curSettings = data.settings;
     users = data.users
+    localStorage.setItem("rj_data", JSON.stringify({
+        pw: data.users[ownUserId].rj_password,
+        game_id: localStorage.getItem("game_id"),
+        user_id: ownUserId
+    }))
     let oedel = 0
     let pigs = 0
     let superPigs = 0
@@ -165,6 +195,52 @@ socket.on("init_spec", (data) => {
     }, 1000)
     clearInterval(refreshInterval)
 })
+
+socket.on("init_rj", (data) => {
+    ownUserId = data.users.length-1
+    ownCards = data.users[ownUserId].cards
+    curSettings = data.settings;
+    users = data.users
+    gameType = data.type
+    startAnnouncementsCards = data.startAnnouncementsCards
+    localStorage.setItem("rj_data", JSON.stringify({
+        pw: data.users[ownUserId].rj_password,
+        game_id: localStorage.getItem("game_id"),
+        user_id: ownUserId
+    }))
+    let oedel = 0
+    let pigs = 0
+    let superPigs = 0
+    ownCards.forEach((card) => {
+        if (equals2D(card, getPigCard())) pigs++
+        else if (equals2D(card, getSuperPigCard())) superPigs++
+        else if (equals2D(card, getOdelCard())) oedel++
+    })
+    if (oedel == 2 && curSettings.odel) special_cards.push(2)
+    if (superPigs == 2 && curSettings.superpigs) special_cards.push(1)
+    if (pigs == 2) special_cards.push(0)
+    startGame(data)
+    currentTrick = data.currentTrick
+    clearInterval(refreshInterval)
+    let i
+    for (i = currentTrick.start; i < currentTrick.start+Object.keys(currentTrick).length-1; i++) {
+        document.getElementById("current_trick").innerHTML += '<img class="trickCard" src="/cards/'+currentTrick[i%4][0].toString()+'-'+currentTrick[i%4][1].toString()+'.svg" style="--i:'+(4-ownUserId+i%4)+'" draggable="false">'
+    }
+    if (data.type != -1) {
+        getPlayerElement(i).className = 'their-turn'
+        if (ownCards.length <= startAnnouncementsCards) {
+            updateAnnouncement()
+        }
+    }
+    for (let j = 0; j < users.length; j++)
+        for (let k = 0; k<users[j].tricks; k++) appendCardToTrick(getPlayerElement(j))
+})
+
+function rejoin() {
+    const rj_data = JSON.parse(localStorage.getItem("rj_data"))
+    document.querySelector('.rejoinMessage').style.display = 'none'
+    socket.emit('rejoin', rj_data.game_id, rj_data.user_id, rj_data.pw)
+}
 
 lastTrick = document.getElementsByClassName("lastTrick")[0]
 document.addEventListener("mousemove", function(e) {
@@ -254,6 +330,7 @@ socket.on("announced", (data) => {
 socket.on("someone_disconnected", (badPerson) => {
     showCalled(badPerson, "Disconnected")
     setTimeout(() => {
+        localStorage.removeItem("rj_data")
         window.location.reload()
     }, 5000)
 })
@@ -493,7 +570,10 @@ socket.on('game_ended', (results) => setTimeout(() => renderResult(results), 700
 
 socket.on('call', (data) => {
     showCalled(data.caller, data.msg)
-    if (data.type == 4) setTimeout(() => location.reload(), 1500)
+    if (data.type == 4) setTimeout(() => {
+        localStorage.removeItem("rj_data")
+        location.reload()
+    }, 1500)
     if (data.type > 5 && curSettings.soloStart) currentTrick.start = data.caller
     if (data.type && data.type != -1) gameType = data.type
     if (data.type > 6) {
@@ -769,12 +849,13 @@ function renderResult(result) {
           <tr></tr>
           ${totalScore}
         </table>
-        <a class="closeX" href=".">X</a>`;
+        <a class="closeX" onclick="localStorage.removeItem('rj_data')" href=".">X</a>`;
 
     var result_div = document.getElementsByClassName("result-container")[0]
     result_div.innerHTML = scoreTable
     result_div.classList.add("show")
 }
+
 
 function isTrump(card) {
     if (gameType <= 11 || gameType == 21) {

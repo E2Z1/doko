@@ -346,13 +346,13 @@ button:active {
   z-index: 15;
 }
 
-.defaultSettingsWarning button, .fullGameMessage button {
+.defaultSettingsWarning button, .fullGameMessage button, .rejoinMessage button {
   color: #ffffff;
   background-color: #000000;
   height: 2em;
 }
 
-.fullGameMessage {
+.fullGameMessage, .rejoinMessage {
   display: none;
   background: linear-gradient(180deg, #f1f1f1 0%, #ffffff 100%);
   border-radius: 10px;

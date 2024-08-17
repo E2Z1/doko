@@ -169,6 +169,13 @@
       <button onclick="document.querySelector('.fullGameMessage').style.display = 'none'; document.getElementById('join-game').style.display = 'block'">No</button>
     </div>
 
+    <div class="rejoinMessage">
+      <h3>You left an active game!</h3>
+      <h3>Do you want to rejoin this game?</h3>
+      <button onclick="rejoin()">Yes</button>
+      <button onclick="document.querySelector('.rejoinMessage').style.display = 'none'; localStorage.removeItem('rj_data')">No</button>
+    </div>
+
     <div id="errorContainer" class="error-container">Error: </div>
     
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>

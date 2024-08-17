@@ -1,3 +1,4 @@
+const { error } = require('console')
 const express = require('express')
 const app = express()
 
@@ -169,6 +170,8 @@ function censorUserData(odata, UserId) {
   let ndata = {}
   ndata.settings = odata.settings
   ndata.currentTrick = odata.currentTrick
+  ndata.startAnnouncementsCards = odata.startAnnouncementsCards
+  ndata.type = odata.type
 
   ndata.users = []
   odata.users.forEach(user => {
@@ -177,9 +180,13 @@ function censorUserData(odata, UserId) {
     ndata.users[user.userId].username = user.username
     ndata.users[user.userId].userId = user.userId
     ndata.users[user.userId].tricks = user.tricks.length
+    ndata.users[user.userId].announced = user.announced
     if (user.userId == UserId) {
       ndata.users[user.userId].cards = user.cards
       ndata.users[user.userId].party = user.party
+      ndata.users[user.userId].rj_password = user.rj_password
+      ndata.users[user.userId].special_cards = user.special_cards
+      ndata.users[user.userId].called_special_cards = user.called_special_cards
     } else {
       ndata.users[user.userId].cards = user.cards.length
       ndata.users[user.userId].party = -1
@@ -214,6 +221,7 @@ function endTrick(socket) {
           game.type = 0
           io.to(game.users[winner].socketId).emit("change_party", 1)
           io.to(socket.game_id).emit("allow_announcements")
+          games.get(socket.game_id).startAnnouncementsCards = games.get(socket.game_id).users[0].cards.length
         }
       })
     } else {
@@ -518,6 +526,14 @@ function howManyCardsAreThereFromThisColor(color, socket) {
   return count
 }
 
+function getRandomString(length) {
+  let result = ""
+  for (let i = 0; i < length; i++) {
+    result += String.fromCharCode(97+Math.random()*26)  //only non-capital letters
+  }
+  return result
+}
+
 
 io.on('connection', (socket) => {
 
@@ -550,7 +566,7 @@ io.on('connection', (socket) => {
 
 
     //if (socket.userId == 0) cards = [[1,5],[1,5],[0,0],[0,0],[0,2],[0,2],[2,4],[2,4],[1,4],[3,4],[1,1],[1,1]]
-    //if (socket.userId == 0) cards = [[1,2],[1,2],[0,1],[0,1],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
+    if (socket.userId == 0) cards = [[1,2],[1,2],[0,1],[0,1],[0,2],[0,2],[2,4],[2,4],[3,4],[3,4],[1,1],[1,1]]
     //if (socket.userId == 1) cards = [[1,0],[1,0],[0,0],[0,0],[0,0],[0,0],[2,0],[2,4],[3,4],[3,4],[1,1],[1,1]]
     //if (socket.userId == 1) cards = [[2,1],[3,1],[3,1],[2,1],[1,2],[1,2],[2,2],[2,2],[3,2],[3,4],[1,5],[1,5]]
 
@@ -559,7 +575,7 @@ io.on('connection', (socket) => {
     }))
 
     
-    games.get(game_id).users.push({socketId: socket.id, userId: socket.userId, username, cards, tricks: [], party, points: [], called: 0, special_cards: [], called_special_cards: [], announced: 0, armut_cards: []});
+    games.get(game_id).users.push({socketId: socket.id, userId: socket.userId, username, cards, tricks: [], party, points: [], called: 0, special_cards: [], called_special_cards: [], announced: 0, armut_cards: [], rj_password: getRandomString(10), rj_timeout: null});
     //points: [[name, points]]
     //called:  0-nothing/start  1-gesund  2-hochzeit  3-armut  4-schmeissen  [5-?]-solo
     //special_cards 0 schweine 1 superschweine 2 oedel doedel
@@ -571,10 +587,23 @@ io.on('connection', (socket) => {
     if (games.get(game_id).users.length == 4) io.to(games.get(game_id).users[0].socketId).emit("u_call")
   })
 
+  socket.on('rejoin', (game_id, user_id, rj_password) => {
+    if (games.has(game_id) && games.get(game_id).users[user_id] && games.get(game_id).users[user_id].socketId == null && games.get(game_id).users[user_id].rj_password == rj_password) {
+      clearTimeout(games.get(game_id).users[user_id].rj_timeout)
+      games.get(game_id).users[user_id].socketId = socket.id
+
+      socket.join(game_id)
+      socket.userId = user_id;
+      socket.username = games.get(game_id).users[user_id].username
+      socket.game_id = game_id
+      socket.emit("init_rj", censorUserData(games.get(game_id), socket.userId))
+    } else socket.emit("error", "invalid rejoin data")
+  })
+
   socket.on('spectate', (game_id) => {
     if ((games.has(game_id) ? games.get(game_id).users.length : 0) < 4) { 
       socket.emit("error", "game isn't full");
-      return 
+      return
     }
     socket.join(game_id)
     socket.game_id = game_id
@@ -762,7 +791,8 @@ io.on('connection', (socket) => {
               })
             }
             io.to(socket.game_id).emit("actual_game_start")
-            if (highestCall != 2) io.to(socket.game_id).emit("allow_announcements")
+            if (highestCall == 2) games.get(socket.game_id).startAnnouncementsCards = 0
+            else io.to(socket.game_id).emit("allow_announcements")
           }, 2000)
         } else {
           games.get(socket.game_id).type = 1
@@ -884,6 +914,10 @@ io.on('connection', (socket) => {
       socket.emit("error", "game doesnt exist")
       return false
     }
+    if (games.get(socket.game_id).type == -1 || games.get(socket.game_id).startAnnouncementsCards < games.get(socket.game_id).users[socket.userId].cards.length) {
+      socket.emit("error", "announcing isnt allowed yet")
+      return false
+    }
     let highestAnnouncement = 0
     games.get(socket.game_id).users.forEach((user) => {
       if (user.party == games.get(socket.game_id).users[socket.userId].party && user.announced > highestAnnouncement) {
@@ -901,12 +935,18 @@ io.on('connection', (socket) => {
   })
 
   socket.on('disconnect', () => {
-    //maybe add logic for removing from game? but they cant reconnect so idk
+    //maybe add logic for removing from game? but they cant reconnect so idk'''
     if (games.get(socket.game_id) && games.get(socket.game_id).users[socket.userId] && games.get(socket.game_id).users[socket.userId].socketId == socket.id) { //was buggy before
-      io.to(socket.game_id).emit("someone_disconnected", socket.userId)
-      socket.rooms.delete(socket.game_id)
-      games.delete(socket.game_id)
-    }
+      
+      games.get(socket.game_id).users[socket.userId].rj_timeout = setTimeout(() => {
+        io.to(socket.game_id).emit("someone_disconnected", socket.userId)
+        socket.rooms.delete(socket.game_id)
+        games.delete(socket.game_id)
+      }, 15000)
+
+      games.get(socket.game_id).users[socket.userId].socketId = null
+
+    } 
   });
 })
 
