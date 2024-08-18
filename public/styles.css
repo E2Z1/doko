@@ -126,14 +126,19 @@ main p {
   overflow: hidden;
   padding: 5px;
   display: none;
-  overflow: hidden;
   height: auto;
   max-height: 25em;
   transition: max-height 0.5s ease;
 }
 
+.showSettingsContent {
+  max-height: 50vh;
+  overflow: scroll;
+}
+
 #showSettings h4 {
   margin: 1px;
+  padding-bottom: 5px;
 }
 
 #saveSettings {

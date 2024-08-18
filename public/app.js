@@ -122,7 +122,7 @@ document.addEventListener("DOMContentLoaded", function(e) {
             } else {
                 setTimeout(() => {
                     localStorage.removeItem("rj_data")
-                    document.querySelector('.rejoinMessage').style.display = "none"
+                    if (document.querySelector('.rejoinMessage')) document.querySelector('.rejoinMessage').style.display = "none"
                 }, rj_data.time+15000-Date.now())
             }
         }
@@ -166,7 +166,7 @@ socket.on("init", (data) => {
     })
     document.getElementById("showSettings").style.display = "block"
     setTimeout(() => {
-        document.getElementById("showSettings").style.maxHeight = "1.9em"
+        document.getElementById("showSettings").style.maxHeight = "2em"
     }, 1000)
     clearInterval(refreshInterval)
 })
@@ -191,7 +191,7 @@ socket.on("init_spec", (data) => {
     })
     document.getElementById("showSettings").style.display = "block"
     setTimeout(() => {
-        document.getElementById("showSettings").style.maxHeight = "1.9em"
+        document.getElementById("showSettings").style.maxHeight = "2em"
     }, 1000)
     clearInterval(refreshInterval)
 })
@@ -231,6 +231,11 @@ socket.on("init_rj", (data) => {
         if (ownCards.length <= startAnnouncementsCards) {
             updateAnnouncement()
         }
+    } else {
+        document.getElementById("showSettings").style.display = "block"
+        setTimeout(() => {
+            document.getElementById("showSettings").style.maxHeight = "2em"
+        }, 1000)
     }
     for (let j = 0; j < users.length; j++)
         for (let k = 0; k<users[j].tricks; k++) appendCardToTrick(getPlayerElement(j))
@@ -240,6 +245,7 @@ function rejoin() {
     const rj_data = JSON.parse(localStorage.getItem("rj_data"))
     document.querySelector('.rejoinMessage').style.display = 'none'
     socket.emit('rejoin', rj_data.game_id, rj_data.user_id, rj_data.pw)
+    localStorage.removeItem("rj_data")
 }
 
 lastTrick = document.getElementsByClassName("lastTrick")[0]
@@ -335,6 +341,10 @@ socket.on("someone_disconnected", (badPerson) => {
     }, 5000)
 })
 
+socket.on( 'disconnect', () => {
+    setTimeout(() => window.location.reload(),100)  //takes ~100ms to restart server locally
+});
+
 function updateAnnouncement() {
     let lowestPossibleAnnouncement = startAnnouncementsCards - ownCards.length
     if (highestAnnouncement >= 5 || lowestPossibleAnnouncement > 5) {
@@ -379,6 +389,9 @@ function startGame(data) {
     if (document.getElementsByClassName("select-game")[0]) document.getElementsByClassName("select-game")[0].remove();
     if (document.getElementsByClassName("navbar")[0]) document.getElementsByClassName("navbar")[0].remove();
     if (document.getElementsByClassName("userSettings")[0]) document.getElementsByClassName("userSettings")[0].remove();
+    if (document.getElementsByClassName("fullGameMessage")[0]) document.getElementsByClassName("fullGameMessage")[0].remove();
+    if (document.getElementsByClassName("rejoinMessage")[0]) document.getElementsByClassName("rejoinMessage")[0].remove();
+    if (document.getElementsByClassName("defaultSettingsWarning")[0]) document.getElementsByClassName("defaultSettingsWarning")[0].remove();
     const gameContainer = document.getElementsByClassName("game-container")[0];
     gameContainer.style.width = '100%';
     gameContainer.style.height = '100%';
@@ -559,10 +572,10 @@ function checkForSuperPigs() {
 
 function showSettingsFlip() {
     let showSettings = document.getElementById("showSettings");
-    if (showSettings.style.maxHeight === "1.9em") {
+    if (showSettings.style.maxHeight === "2em") {
       showSettings.style.maxHeight = "25em";
     } else {
-      showSettings.style.maxHeight = "1.9em";
+      showSettings.style.maxHeight = "2em";
     }
   }
 
