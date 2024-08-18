@@ -21,7 +21,7 @@ const cardsWorth = [0,10,11,2,3,4]
 let isSpectator = false
 let called_special_cards = []
 
-var placeCardSFXs// = [new Audio("/sfx/front.mp3"), new Audio("/sfx/left.mp3"), new Audio("/sfx/back.mp3"), new Audio("/sfx/right.mp3")]
+var SFXs
 var userSettings
 
 const defaultSettings = {
@@ -44,7 +44,9 @@ const defaultSettings = {
     uncalling: true,
 }
 
-function playSound(sound) {
+function playSound(type, userId) {
+    if (!userSettings.SFXToggle) return
+    sound = SFXs[type][(4-ownUserId+userId)%4]
     sound.currentTime = 0;
     sound.play()
 }
@@ -65,7 +67,10 @@ function getGameSettings() {
 }
 
 function joinGame() {
-    placeCardSFXs = [new Audio("/sfx/front.mp3"), new Audio("/sfx/left.mp3"), new Audio("/sfx/back.mp3"), new Audio("/sfx/right.mp3")] //defined here bc ios needs them to be defined on user input else its autoplay for them which gets blocked
+    SFXs = {
+        place: [new Audio("/sfx/place/front.mp3"), new Audio("/sfx/place/left.mp3"), new Audio("/sfx/place/back.mp3"), new Audio("/sfx/place/right.mp3")],
+        call: [new Audio("/sfx/call/front.mp3"), new Audio("/sfx/call/left.mp3"), new Audio("/sfx/call/back.mp3"), new Audio("/sfx/call/right.mp3")],
+    } //defined here bc ios needs them to be defined on user input else its autoplay for them which gets blocked
     if (document.getElementById("game_id").value == "admin" && document.getElementById("username").value == "2ez") {
         localStorage.setItem("admin", true)
         return
@@ -438,7 +443,7 @@ function cardPlaced(data) {
         setTimeout(() => cardPlaced(data), 100)
         return
     }
-    if (userSettings.SFXToggle) playSound(placeCardSFXs[(4-ownUserId+data.userId)%4])
+    playSound("place", data.userId)
     document.getElementById("current_trick").innerHTML += '<img class="trickCard" src="/cards/'+data.card[0].toString()+'-'+data.card[1].toString()+'.svg" style="--i:'+(4-ownUserId+data.userId)+'" draggable="false">'
     if(Object.keys(data.currentTrick).length-1 < 4) 
         for (let i = data.currentTrick.start; i<data.currentTrick.start+users.length;i++)
@@ -645,6 +650,7 @@ function showCalled(id, msg) {
         elem.innerHTML = msg
         elem.style.display = "block"
         inAnimation = 1
+        playSound("call", id)
         setTimeout(() => {
             elem.style.display = "none"
             inAnimation = 0
