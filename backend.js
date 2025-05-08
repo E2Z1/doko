@@ -537,7 +537,7 @@ function getRandomString(length) {
 
 const botNames = ["Pablo", "Michelle", "Mike", "Joe", "Friedolin", "Hubert"]
 
-const botWait = 700;
+const botWait = 300;
 
 class Bot {
 	constructor(game_id) {
@@ -553,8 +553,17 @@ class Bot {
 		
 
 		//ai
+		this.trick = {};
 		this.tricks = [];
-		this.partyProbs = [];
+		this.partyProbs = [1/3, 1/3, 1/3, 1/3];
+		this.probCards = [{}, {}, {}, {}]
+		this.pointsLeft = 240;
+		this.leftCards = [];
+		for (let i = 0; i < 4; i++) {
+			for (let j = 0; j < 12; j++) {
+				this.leftCards.push([i, Math.floor(j/2)]);
+			}
+		}
 
 
 
@@ -565,8 +574,10 @@ class Bot {
 			this.users = data.users;
 
 			this.id = data.users.length-1;
+			this.partyProbs[this.id] = 1;
 			this.socket.userId = this.id;
 			this.cards = data.users[this.id].cards;
+			this.party = data.users[this.id].party;
 		});
 
 		this.socket.on('user_joined', (data) => {
@@ -581,6 +592,33 @@ class Bot {
 		});
 
 		this.socket.on('placed_card', (data) => {
+			this.trick = data.currentTrick;
+			this.pointsLeft -= cardsWorth[data.card[1]];
+			for (let i = 0; i < this.leftCards.length; i++) {
+				if (this.leftCards[i][0] === data.card[0] && this.leftCards[i][1] === data.card[1]) {
+					this.leftCards.splice(i, 1);
+					break;
+				}
+			}
+			
+			if (data.userId == this.id) {
+				for (let i = 0; i < this.cards.length; i++) {
+					if (this.cards[i][0] === data.card[0] && this.cards[i][1] === data.card[1]) {
+						this.cards.splice(i, 1);
+						break;
+					}
+				}
+			} else {
+				this.users[data.userId].cards -= 1;
+				if (3 == data.card[0] && 4 == data.card[1]) {
+					this.partyProbs[data.userId] = this.party == 1;
+					let others = [0,1,2,3];
+					
+				}
+			}
+
+
+
 			let nextPlayer;
 			if (Object.keys(data.currentTrick).length-1 < 4) {
 				for (let i = data.currentTrick.start; i<data.currentTrick.start+this.users.length;i++) {
@@ -594,19 +632,12 @@ class Bot {
 				}
 			}
 
-			if (data.userId == this.id) {
-				for (let i = 0; i < this.cards.length; i++) {
-					if (this.cards[i][0] === data.card[0] && this.cards[i][1] === data.card[1]) {
-						this.cards.splice(i, 1);
-					}
-				}
-			} else {
-				this.users[data.userId].cards -= 1;
-			}
-
 		});
 
 		this.socket.on('new_trick', (trick) => {
+			this.tricks.push(trick);
+			this.trick = trick;
+
 			setTimeout(() => {
 				if (trick.start == this.id && this.cards.length != 0) {
 					this.emit('place_card', this.getBestCard());
@@ -615,12 +646,36 @@ class Bot {
 		});
 	}
 
-	getBestCard() {
-		let i = 0;
-		while (!isValid(i, this.socket)) {
-			i++;
+	evaluatePlay(card) {
+		const trick_cards = [];
+		for (let i = this.trick.start; i < 4+this.trick.start;i++) {
+			if (Object.keys(this.trick).includes((i%4).toString()))
+				trick_cards.push(this.trick[(i%4).toString()]);
 		}
-		return i;
+		trick_cards.push(card);
+		const winner = (getHighestCard(trick_cards, this.socket)+this.trick.start)%4;
+		const points = trick_cards.reduce((accumulator, currentValue) => accumulator + cardsWorth[currentValue[1]], 0)/trick_cards.length;
+		const avgVal = this.leftCards.reduce((accumulator, currentValue) => accumulator + cardsWorth[currentValue[1]], 0)/this.leftCards.length;
+		
+		let winProb = this.partyProbs[winner];		//TODO: can be steched
+		return points/avgVal * (2*winProb-1);
+	}
+
+	getBestCard() {
+		let max = -Infinity;
+		let best;
+		console.log(this.name)
+		for (let i = 0; i < this.cards.length; i++) {
+			if (isValid(i, this.socket)) {
+				const ev = this.evaluatePlay(this.cards[i]);
+				console.log(this.cards[i], ev)
+				if (ev > max) {
+					max = ev;
+					best = i;
+				}
+			}
+		}
+		return best;
 	}
 
 	emit(name, ...params) {
