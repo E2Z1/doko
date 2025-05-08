@@ -594,11 +594,21 @@ class Bot {
 				}
 			}
 
+			if (data.userId == this.id) {
+				for (let i = 0; i < this.cards.length; i++) {
+					if (this.cards[i][0] === data.card[0] && this.cards[i][1] === data.card[1]) {
+						this.cards.splice(i, 1);
+					}
+				}
+			} else {
+				this.users[data.userId].cards -= 1;
+			}
+
 		});
 
 		this.socket.on('new_trick', (trick) => {
 			setTimeout(() => {
-				if (trick.start == this.id) {
+				if (trick.start == this.id && this.cards.length != 0) {
 					this.emit('place_card', this.getBestCard());
 				}
 			}, 2500);
