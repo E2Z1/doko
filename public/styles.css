@@ -190,6 +190,10 @@ main p {
   margin-top: 5px;
 }
 
+.game-container {
+	display: none;
+}
+
 .nav-bar {
   background-color: #929292;
 }
@@ -491,6 +495,26 @@ button:active {
   padding-left: 15px;
   margin: 7px;
   user-select: none;
+}
+
+#fillBots {
+	display: none;
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	cursor: pointer;
+	font-size: 30px;
+	background: linear-gradient(45deg, #4f4e4e 0%, #000000 100%);
+	border: 5px solid white;
+	border-radius: 5px;
+	color: #f1f1f1;
+	text-decoration: none;
+	padding: 5px;
+	padding-right: 15px;
+	padding-left: 15px;
+	margin: 7px;
+	user-select: none;
 }
 
 #announcement {

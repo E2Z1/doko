@@ -32,13 +32,13 @@ const defaultSettings = {
     feigheit: true,
     koppeldopf: true,
     soloStart: true,
-    pureSolo: false,
-    shiftSpecialCardsSolo: false,
+    pureSolo: true,
+    shiftSpecialCardsSolo: true,
     manyFulls: true,
     pureKingNineSolo: true,
-    kingNineSolo: false,
-    lossSolo: false,
-    redBlackSolo: false,
+    kingNineSolo: true,
+    lossSolo: true,
+    redBlackSolo: true,
     throwOverSolo: false,
     feigheitInSolo: false,
     uncalling: true,
@@ -400,6 +400,10 @@ function startGame(data) {
     const gameContainer = document.getElementsByClassName("game-container")[0];
     gameContainer.style.width = '100%';
     gameContainer.style.height = '100%';
+	gameContainer.style.display = "block";
+	if (ownUserId == 0) {
+		document.getElementById("fillBots").style.display = "block";
+	}
     renderCardsforAll()
 }
 
@@ -425,6 +429,9 @@ socket.on('user_joined', (data) => {
     data.tricks = 0
     users.push(data)
     renderCardsfor(data.userId)
+	if (users.length == 4) {
+		document.getElementById("fillBots").style.display = "none";
+	}
 })
 
 function getIndexOfCard(cards, searched) {
